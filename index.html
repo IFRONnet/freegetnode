@@ -9,66 +9,69 @@
             font-family: 'Orbitron', sans-serif;
             margin: 0;
             padding: 0;
-            background-color: #0d0f12;
+            background: linear-gradient(145deg, #0b0c10, #1c1f25);
             color: #ffffff;
+            overflow-x: hidden;
         }
         h1 {
             color: #00ffea;
             text-align: center;
-            margin-top: 40px;
-            font-size: 2.5rem;
-            text-shadow: 0 0 10px #00ffea, 0 0 20px #00ffea;
+            margin-top: 50px;
+            font-size: 3rem;
+            text-shadow: 0 0 15px #00ffea, 0 0 25px #00ffea;
         }
         .container {
             max-width: 800px;
-            margin: 40px auto;
-            padding: 20px;
+            margin: 60px auto;
+            padding: 30px;
             background: linear-gradient(145deg, #14181e, #0e1217);
-            border-radius: 15px;
-            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.8), 0 0 15px #00ffea;
+            border-radius: 20px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.8), 0 0 20px #00ffea;
         }
         .data-container {
-            margin-bottom: 30px;
+            margin-bottom: 40px;
         }
         .progress-container {
             margin: 20px 0;
         }
         .progress-bar {
             width: 100%;
-            background-color: rgba(255, 255, 255, 0.2);
-            border-radius: 8px;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
             overflow: hidden;
-            height: 30px;
-            box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.8), 0 0 15px #00ffea;
+            height: 35px;
+            box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.8), 0 0 20px #00ffea;
+            position: relative;
         }
         .progress-bar-inner {
             height: 100%;
             background: linear-gradient(90deg, #00ffea, #0066ff);
-            width: 0%;
+            width: 0;
             text-align: center;
             color: white;
-            line-height: 30px;
+            line-height: 35px;
             text-shadow: 0 0 8px #000, 0 0 8px #00ffea;
-            border-radius: 8px;
+            border-radius: 10px;
+            transition: width 0.5s ease-out;
         }
         .btn {
-            padding: 12px 25px;
+            padding: 15px 30px;
             background: linear-gradient(145deg, #0066ff, #00ffea);
             color: white;
             border: none;
-            border-radius: 8px;
+            border-radius: 12px;
             cursor: pointer;
-            font-size: 1.2rem;
+            font-size: 1.3rem;
             transition: background-color 0.3s, box-shadow 0.3s;
             display: inline-block;
             text-align: center;
-            margin-top: 10px;
+            margin-top: 20px;
             text-decoration: none;
-            box-shadow: 0 0 15px #00ffea, 0 0 15px #0066ff;
+            box-shadow: 0 0 20px #00ffea, 0 0 20px #0066ff;
         }
         .btn:hover {
             background: linear-gradient(145deg, #00ffea, #0066ff);
-            box-shadow: 0 0 25px #00ffea, 0 0 25px #0066ff;
+            box-shadow: 0 0 30px #00ffea, 0 0 30px #0066ff;
         }
         .btn:active {
             background: linear-gradient(145deg, #00ffea, #0033cc);
@@ -78,17 +81,17 @@
             color: white;
         }
         .content {
-            font-size: 1.2rem;
-            line-height: 1.8;
-            color: #b0c7d4;
-            padding: 10px 0;
+            font-size: 1.3rem;
+            line-height: 2;
+            color: #c0d5df;
+            padding: 15px 0;
         }
         /* 进度条显示的百分比字体 */
         .progress-text {
-            font-size: 1.1rem;
+            font-size: 1.2rem;
             text-shadow: 0 0 10px #00ffea;
         }
-        /* 添加科幻感字体 */
+        /* 引入字体 */
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500&display=swap');
     </style>
 </head>
@@ -99,7 +102,7 @@
 <div class="container">
     <!-- 用户参数显示 -->
     <div class="data-container" id="dataContainer">
-        <p class="content">正在加载用户参数...</p>
+        <p class="content">正在加载用户参数，请稍候...</p>
     </div>
 
     <!-- 进度条用于显示剩余流量百分比 -->
@@ -112,12 +115,12 @@
     <!-- 按钮用于复制订阅内容 -->
     <button class="btn" id="copySubscriptionBtn">复制订阅内容</button>
 
-    <!-- 新增安卓客户端下载按钮 -->
+    <!-- 安卓客户端下载按钮 -->
     <button class="btn">
         <a class="btn-link" href="https://github.com/MatsuriDayo/NekoBoxForAndroid/releases/download/1.3.1/NB4A-1.3.1-arm64-v8a.apk" target="_blank">安卓客户端下载</a>
     </button>
 
-    <!-- 新增电脑客户端下载按钮 -->
+    <!-- 电脑客户端下载按钮 -->
     <button class="btn">
         <a class="btn-link" href="https://github.com/v2fly/v2ray-core/releases" target="_blank">win客户端下载</a>
     </button>
@@ -152,11 +155,11 @@
         const percent = data.percentNumber;
 
         dataContainer.innerHTML = `
-            <div class="content"><strong>订阅最后被使用的时间：</strong> ${new Date(data.lastUseTime * 1000).toLocaleString()}</div>
-            <div class="content"><strong>此订阅的速度限制【hy2订阅无速度限制】：</strong> ${data.speedlimit} Mbps</div>
-            <div class="content"><strong>剩余流量【用完随缘重置】：</strong> ${data.remainingTraffic}</div>
-            <div class="content"><strong>已用流量的百分比：</strong> ${percent}% </div>
-            <div class="content"><strong>已经随缘重置次数：</strong> ${data.resetTimes}</div>
+            <div class="content"><strong>订阅最后使用时间：</strong> ${new Date(data.lastUseTime * 1000).toLocaleString()}</div>
+            <div class="content"><strong>订阅速度限制：</strong> ${data.speedlimit} Mbps</div>
+            <div class="content"><strong>剩余流量：</strong> ${data.remainingTraffic}</div>
+            <div class="content"><strong>已用流量百分比：</strong> ${percent}%</div>
+            <div class="content"><strong>重置次数：</strong> ${data.resetTimes}</div>
         `;
 
         // 更新进度条
