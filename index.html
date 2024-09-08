@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>用户参数显示</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+            background-color: #f4f4f4;
+        }
+        h1 {
+            color: #333;
+        }
+        .data-container {
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+        .copy-btn {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        .copy-btn:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+
+<h1>用户参数显示</h1>
+<div class="data-container" id="dataContainer">
+    <p>正在加载用户参数...</p>
+</div>
+
+<!-- 添加一个按钮用于复制链接 -->
+<button class="copy-btn" onclick="copySubscriptionLink()">复制订阅链接</button>
+
+<script>
+    const targetUrl = 'https://getafreenode.com/main/web_api.php?act=getuserinfo&uuid=88888888-8888-8888-8888-888888888888';
+    const corsProxy = 'https://api.allorigins.win/get?url=';
+
+    // 获取远程HTML数据
+    async function fetchRemoteHtml() {
+        try {
+            const response = await fetch(corsProxy + encodeURIComponent(targetUrl));
+            if (!response.ok) {
+                throw new Error('网络响应不正常');
+            }
+            const data = await response.json();
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(data.contents, 'text/html');
+            displayData(htmlDoc.body.textContent);
+        } catch (error) {
+            document.getElementById('dataContainer').innerHTML = `<p>获取数据时出错: ${error.message}</p>`;
+        }
+    }
+
+    // 显示数据
+    function displayData(jsonText) {
+        const data = JSON.parse(jsonText);
+        const dataContainer = document.getElementById('dataContainer');
+        dataContainer.innerHTML = `
+            <div><strong>上次使用时间：</strong> ${new Date(data.lastUseTime * 1000).toLocaleString()}</div>
+            <div><strong>速度限制：</strong> ${data.speedlimit} Mbps</div>
+            <div><strong>剩余流量：</strong> ${data.remainingTraffic}</div>
+            <div><strong>已用百分比：</strong> ${data.percentNumber}% (${data.percent})</div>
+            <div><strong>重置次数：</strong> ${data.resetTimes}</div>
+        `;
+    }
+
+    // 页面加载时调用
+    fetchRemoteHtml();
+
+    // 复制订阅链接
+    function copySubscriptionLink() {
+        const subscriptionUrl = window.location.origin + '/subscriptions.html'; // 获取当前域名并拼接路径
+        navigator.clipboard.writeText(subscriptionUrl).then(() => {
+            alert('订阅链接已复制到剪贴板: ' + subscriptionUrl);
+        }).catch(err => {
+            console.error('复制失败: ', err);
+        });
+    }
+</script>
+
+</body>
+</html>
