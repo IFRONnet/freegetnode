@@ -3,52 +3,128 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>用户参数显示</title>
+    <title>用户参数显示和订阅功能</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
-            margin: 40px;
-            background-color: #f4f4f4;
+            font-family: 'Orbitron', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #0d0f12;
+            color: #ffffff;
         }
         h1 {
-            color: #333;
+            color: #00ffea;
+            text-align: center;
+            margin-top: 40px;
+            font-size: 2.5rem;
+            text-shadow: 0 0 10px #00ffea, 0 0 20px #00ffea;
+        }
+        .container {
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 20px;
+            background: linear-gradient(145deg, #14181e, #0e1217);
+            border-radius: 15px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.8), 0 0 15px #00ffea;
         }
         .data-container {
-            padding: 20px;
-            background-color: #fff;
-            border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            margin-bottom: 20px;
+            margin-bottom: 30px;
         }
-        .copy-btn {
-            padding: 10px 20px;
-            background-color: #4CAF50;
+        .progress-container {
+            margin: 20px 0;
+        }
+        .progress-bar {
+            width: 100%;
+            background-color: rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            overflow: hidden;
+            height: 30px;
+            box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.8), 0 0 15px #00ffea;
+        }
+        .progress-bar-inner {
+            height: 100%;
+            background: linear-gradient(90deg, #00ffea, #0066ff);
+            width: 0%;
+            text-align: center;
+            color: white;
+            line-height: 30px;
+            text-shadow: 0 0 8px #000, 0 0 8px #00ffea;
+            border-radius: 8px;
+        }
+        .btn {
+            padding: 12px 25px;
+            background: linear-gradient(145deg, #0066ff, #00ffea);
             color: white;
             border: none;
-            border-radius: 5px;
+            border-radius: 8px;
             cursor: pointer;
+            font-size: 1.2rem;
+            transition: background-color 0.3s, box-shadow 0.3s;
+            display: inline-block;
+            text-align: center;
             margin-top: 10px;
+            text-decoration: none;
+            box-shadow: 0 0 15px #00ffea, 0 0 15px #0066ff;
         }
-        .copy-btn:hover {
-            background-color: #45a049;
+        .btn:hover {
+            background: linear-gradient(145deg, #00ffea, #0066ff);
+            box-shadow: 0 0 25px #00ffea, 0 0 25px #0066ff;
         }
+        .btn:active {
+            background: linear-gradient(145deg, #00ffea, #0033cc);
+        }
+        .btn-link {
+            text-decoration: none;
+            color: white;
+        }
+        .content {
+            font-size: 1.2rem;
+            line-height: 1.8;
+            color: #b0c7d4;
+            padding: 10px 0;
+        }
+        /* 进度条显示的百分比字体 */
+        .progress-text {
+            font-size: 1.1rem;
+            text-shadow: 0 0 10px #00ffea;
+        }
+        /* 添加科幻感字体 */
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500&display=swap');
     </style>
 </head>
 <body>
 
-<h1>用户参数显示</h1>
-<div class="data-container" id="dataContainer">
-    <p>正在加载用户参数...</p>
-</div>
+<h1>用户参数显示和订阅功能</h1>
 
-<!-- 添加一个按钮用于复制链接 -->
-<button class="copy-btn" onclick="copySubscriptionLink()">复制订阅链接</button>
+<div class="container">
+    <!-- 用户参数显示 -->
+    <div class="data-container" id="dataContainer">
+        <p class="content">正在加载用户参数...</p>
+    </div>
+
+    <!-- 进度条用于显示剩余流量百分比 -->
+    <div class="progress-container">
+        <div class="progress-bar">
+            <div class="progress-bar-inner" id="trafficProgressBar">0%</div>
+        </div>
+    </div>
+
+    <!-- 按钮用于复制订阅内容 -->
+    <button class="btn" id="copySubscriptionBtn">复制订阅内容</button>
+
+    <!-- 按钮用于跳转到 subscriptions.html -->
+    <button class="btn">
+        <a class="btn-link" href="subscriptions.html" target="_blank">跳转到订阅页面</a>
+    </button>
+</div>
 
 <script>
     const targetUrl = 'https://getafreenode.com/main/web_api.php?act=getuserinfo&uuid=88888888-8888-8888-8888-888888888888';
     const corsProxy = 'https://api.allorigins.win/get?url=';
+    const subscriptionUrl = 'https://getafreenode.com/subscribe/?uuid=88888888-8888-8888-8888-888888888888';
+    let finalBase64 = ''; // 用于保存生成的 Base64 订阅内容
 
-    // 获取远程HTML数据
+    // 获取远程用户数据
     async function fetchRemoteHtml() {
         try {
             const response = await fetch(corsProxy + encodeURIComponent(targetUrl));
@@ -60,35 +136,82 @@
             const htmlDoc = parser.parseFromString(data.contents, 'text/html');
             displayData(htmlDoc.body.textContent);
         } catch (error) {
-            document.getElementById('dataContainer').innerHTML = `<p>获取数据时出错: ${error.message}</p>`;
+            document.getElementById('dataContainer').innerHTML = `<p class="content">获取数据时出错: ${error.message}</p>`;
         }
     }
 
-    // 显示数据
+    // 显示用户数据
     function displayData(jsonText) {
         const data = JSON.parse(jsonText);
         const dataContainer = document.getElementById('dataContainer');
+        const percent = data.percentNumber;
+
         dataContainer.innerHTML = `
-            <div><strong>上次使用时间：</strong> ${new Date(data.lastUseTime * 1000).toLocaleString()}</div>
-            <div><strong>速度限制：</strong> ${data.speedlimit} Mbps</div>
-            <div><strong>剩余流量：</strong> ${data.remainingTraffic}</div>
-            <div><strong>已用百分比：</strong> ${data.percentNumber}% (${data.percent})</div>
-            <div><strong>重置次数：</strong> ${data.resetTimes}</div>
+            <div class="content"><strong>上次使用时间：</strong> ${new Date(data.lastUseTime * 1000).toLocaleString()}</div>
+            <div class="content"><strong>速度限制：</strong> ${data.speedlimit} Mbps</div>
+            <div class="content"><strong>剩余流量：</strong> ${data.remainingTraffic}</div>
+            <div class="content"><strong>已用百分比：</strong> ${percent}% (${data.percent})</div>
+            <div class="content"><strong>重置次数：</strong> ${data.resetTimes}</div>
         `;
+
+        // 更新进度条
+        const progressBar = document.getElementById('trafficProgressBar');
+        progressBar.style.width = percent + '%';
+        progressBar.textContent = percent + '%';
     }
+
+    // 获取订阅信息
+    async function fetchSubscriptionInfo() {
+        try {
+            const response = await fetch(corsProxy + encodeURIComponent(subscriptionUrl));
+            if (!response.ok) {
+                throw new Error('无法获取订阅信息');
+            }
+
+            const data = await response.json();
+            const decodedContent = atob(data.contents); // Base64 解码
+            finalBase64 = generateFinalBase64(decodedContent);
+        } catch (error) {
+            alert('获取订阅信息失败：' + error.message);
+        }
+    }
+
+    // 生成去除广告的最终 Base64 编码
+    function generateFinalBase64(decodedContent) {
+        const lines = decodedContent.split('\n').map(line => {
+            if (line.startsWith('vmess://')) {
+                const vmessDecoded = atob(line.slice(8)); // 去掉 'vmess://' 并解码 Base64
+                const vmessReplaced = replaceKeywords(vmessDecoded); // 替换广告内容
+                return 'vmess://' + btoa(vmessReplaced); // 重新编码为 Base64 并加上 'vmess://'
+            } else {
+                return replaceKeywords(line); // 对其他类型的链接进行广告替换
+            }
+        }).join('\n');
+        return btoa(lines); // 将处理后的内容重新编码为 Base64
+    }
+
+    // 替换广告关键词
+    function replaceKeywords(text) {
+        return text.replace(/-GetAFreeNode\.com/g, '-getfreenode.pages.dev/')
+                   .replace(/-GetAFreeNode/g, '-getfreenode.pages.dev/');
+    }
+
+    // 复制订阅内容
+    document.getElementById('copySubscriptionBtn').addEventListener('click', function() {
+        if (finalBase64) {
+            navigator.clipboard.writeText(finalBase64).then(() => {
+                alert('订阅内容已复制到剪贴板');
+            }).catch(err => {
+                console.error('复制失败: ', err);
+            });
+        } else {
+            alert('订阅内容尚未加载，请稍后再试');
+        }
+    });
 
     // 页面加载时调用
     fetchRemoteHtml();
-
-    // 复制订阅链接
-    function copySubscriptionLink() {
-        const subscriptionUrl = window.location.origin + '/subscriptions.html'; // 获取当前域名并拼接路径
-        navigator.clipboard.writeText(subscriptionUrl).then(() => {
-            alert('订阅链接已复制到剪贴板: ' + subscriptionUrl);
-        }).catch(err => {
-            console.error('复制失败: ', err);
-        });
-    }
+    fetchSubscriptionInfo();
 </script>
 
 </body>
