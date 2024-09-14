@@ -135,6 +135,17 @@
         }
     }
 
+    // 清理缓存并获取新数据
+    function clearCacheAndFetchData() {
+        // 清理缓存内容
+        document.getElementById('dataContainer').innerHTML = `<p class="content">正在加载用户参数，请稍候...</p>`;
+        document.getElementById('trafficProgressBar').style.width = '0%';
+        document.getElementById('trafficProgressBar').textContent = '0%';
+        
+        // 重新获取新数据
+        fetchRemoteHtml();
+    }
+
     // 显示用户数据
     function displayData(jsonText) {
         const data = JSON.parse(jsonText);
@@ -206,7 +217,7 @@
 
     // 手动刷新数据功能
     document.getElementById('refreshDataBtn').addEventListener('click', function() {
-        fetchRemoteHtml();
+        clearCacheAndFetchData(); // 先清理缓存再重新获取数据
     });
 
     // 页面加载时调用
