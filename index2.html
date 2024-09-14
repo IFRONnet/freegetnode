@@ -144,17 +144,18 @@
                 data = await response2.json();
             }
 
-            const parser = new DOMParser();
-            const htmlDoc = parser.parseFromString(data.contents, 'text/html');
-            displayData(htmlDoc.body.textContent);
+            // 修正：提取返回的内容，并确保它是合法的JSON
+            const parsedContent = data.contents.trim();  // 获取并去除前后空白
+            const jsonData = JSON.parse(parsedContent);  // 将字符串解析为JSON对象
+
+            displayData(jsonData);  // 显示数据
         } catch (error) {
             document.getElementById('dataContainer').innerHTML = `<p class="content">获取数据时出错: ${error.message}</p>`;
         }
     }
 
     // 显示用户数据
-    function displayData(jsonText) {
-        const data = JSON.parse(jsonText);
+    function displayData(data) {
         const dataContainer = document.getElementById('dataContainer');
         const percent = data.percentNumber;
 
