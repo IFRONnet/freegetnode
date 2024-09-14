@@ -116,7 +116,7 @@
 
 <script>
     const targetUrl1 = 'https://getafreenode.com/main/web_api.php?act=getuserinfo&uuid=88888888-8888-8888-8888-888888888888';
-    const targetUrl2 = 'https://getfreenodes.com/api/getuserinfo?uuid=88888888-8888-8888-8888-888888888888'; // 第二个API
+    const targetUrl2 = 'https://getfreenodes.com/main/web_api.php?act=getuserinfo&uuid=88888888-8888-8888-8888-888888888888';
     const corsProxy = 'https://api.allorigins.win/get?url=';
     let finalBase64 = ''; // 用于保存生成的 Base64 订阅内容
 
@@ -134,34 +134,41 @@
             const duration2 = performance.now() - start2;
 
             let response;
+            let apiUsed;
+
+            // 根据响应速度选择最快的API
             if (duration1 < duration2) {
                 response = response1;
+                apiUsed = targetUrl1;
             } else {
                 response = response2;
+                apiUsed = targetUrl2;
             }
 
             if (!response.ok) throw new Error('网络响应不正常');
-            const data = await response.json();
 
-            // 确认返回的是否是JSON数据，如果包含HTML则处理为错误
+            const data = await response.json();
             const parsedContent = data.contents.trim();
+
+            // 检查返回内容是否为HTML
             if (parsedContent.startsWith('<')) {
                 throw new Error('返回的是HTML而不是JSON');
             }
 
             const jsonData = JSON.parse(parsedContent);  // 将字符串解析为JSON对象
-            displayData(jsonData);  // 显示数据
+            displayData(jsonData, apiUsed);  // 显示数据
         } catch (error) {
             document.getElementById('dataContainer').innerHTML = `<p class="content">获取数据时出错: ${error.message}</p>`;
         }
     }
 
     // 显示用户数据
-    function displayData(data) {
+    function displayData(data, apiUsed) {
         const dataContainer = document.getElementById('dataContainer');
         const percent = data.percentNumber;
 
         dataContainer.innerHTML = `
+            <div class="content"><strong>使用的API：</strong> ${apiUsed}</div>
             <div class="content"><strong>订阅最后使用时间：</strong> ${new Date(data.lastUseTime * 1000).toLocaleString()}</div>
             <div class="content"><strong>订阅速度限制：</strong> ${data.speedlimit} Mbps</div>
             <div class="content"><strong>剩余流量：</strong> ${data.remainingTraffic}</div>
