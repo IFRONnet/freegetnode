@@ -107,44 +107,34 @@
         </div>
     </div>
 
+    <!-- 按钮用于切换节点 -->
+    <button class="btn" id="switchNodeBtn">切换节点</button>
+
     <!-- 按钮用于复制订阅内容 -->
     <button class="btn" id="copySubscriptionBtn">复制订阅内容</button>
-
-    <!-- 手动刷新数据按钮 -->
-    <button class="btn" id="refreshDataBtn">刷新数据</button>
 </div>
 
 <script>
-    const targetUrl1 = 'https://getafreenode.com/main/web_api.php?act=getuserinfo&uuid=88888888-8888-8888-8888-888888888888';
-    const targetUrl2 = 'https://getfreenodes.com/main/web_api.php?act=getuserinfo&uuid=88888888-8888-8888-8888-888888888888';
+    const nodes = [
+        {
+            name: '节点A',
+            url: 'https://getafreenode.com/main/web_api.php?act=getuserinfo&uuid=88888888-8888-8888-8888-888888888888'
+        },
+        {
+            name: '节点B',
+            url: 'https://getfreenodes.com/main/web_api.php?act=getuserinfo&uuid=88888888-8888-8888-8888-888888888888'
+        }
+    ];
+
     const corsProxy = 'https://api.allorigins.win/get?url=';
+    let currentNodeIndex = 0;
     let finalBase64 = ''; // 用于保存生成的 Base64 订阅内容
 
-    // 获取远程用户数据，并计算响应速度
+    // 获取远程用户数据
     async function fetchRemoteHtml() {
         try {
-            // 测试第一个API响应速度
-            const start1 = performance.now();
-            const response1 = await fetch(corsProxy + encodeURIComponent(targetUrl1));
-            const duration1 = performance.now() - start1;
-
-            // 测试第二个API响应速度
-            const start2 = performance.now();
-            const response2 = await fetch(corsProxy + encodeURIComponent(targetUrl2));
-            const duration2 = performance.now() - start2;
-
-            let response;
-            let apiUsed;
-
-            // 根据响应速度选择最快的API
-            if (duration1 < duration2) {
-                response = response1;
-                apiUsed = targetUrl1;
-            } else {
-                response = response2;
-                apiUsed = targetUrl2;
-            }
-
+            const currentNode = nodes[currentNodeIndex];
+            const response = await fetch(corsProxy + encodeURIComponent(currentNode.url));
             if (!response.ok) throw new Error('网络响应不正常');
 
             const data = await response.json();
@@ -156,19 +146,19 @@
             }
 
             const jsonData = JSON.parse(parsedContent);  // 将字符串解析为JSON对象
-            displayData(jsonData, apiUsed);  // 显示数据
+            displayData(jsonData, currentNode.name);  // 显示数据
         } catch (error) {
             document.getElementById('dataContainer').innerHTML = `<p class="content">获取数据时出错: ${error.message}</p>`;
         }
     }
 
     // 显示用户数据
-    function displayData(data, apiUsed) {
+    function displayData(data, nodeName) {
         const dataContainer = document.getElementById('dataContainer');
         const percent = data.percentNumber;
 
         dataContainer.innerHTML = `
-            <div class="content"><strong>使用的API：</strong> ${apiUsed}</div>
+            <div class="content"><strong>当前节点：</strong> ${nodeName}</div>
             <div class="content"><strong>订阅最后使用时间：</strong> ${new Date(data.lastUseTime * 1000).toLocaleString()}</div>
             <div class="content"><strong>订阅速度限制：</strong> ${data.speedlimit} Mbps</div>
             <div class="content"><strong>剩余流量：</strong> ${data.remainingTraffic}</div>
@@ -181,8 +171,14 @@
         progressBar.textContent = percent + '%';
     }
 
+    // 切换节点
+    function switchNode() {
+        currentNodeIndex = (currentNodeIndex + 1) % nodes.length; // 切换到下一个节点
+        fetchRemoteHtml(); // 切换节点后重新加载数据
+    }
+
     // 事件绑定
-    document.getElementById('refreshDataBtn').addEventListener('click', fetchRemoteHtml);
+    document.getElementById('switchNodeBtn').addEventListener('click', switchNode);
 
     // 初次加载时获取数据
     fetchRemoteHtml();
