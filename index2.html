@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>公益免费订阅</title>
+    <title>优化版公益免费订阅</title>
     <style>
         body {
             font-family: 'Orbitron', sans-serif;
@@ -95,39 +95,19 @@
 </head>
 <body>
 
-<h1>公益免费订阅</h1>
+<h1>优化版公益免费订阅</h1>
 
 <div class="container">
-    <!-- 节点A显示区域 -->
-    <div class="node-container" id="nodeAContainer">
-        <h2>节点A</h2>
-        <div class="data-container" id="dataContainerA">
-            <p class="content">正在加载节点A数据，请稍候...</p>
-        </div>
-        <!-- 进度条用于显示节点A的剩余流量百分比 -->
-        <div class="progress-container">
-            <div class="progress-bar">
-                <div class="progress-bar-inner" id="trafficProgressBarA">0%</div>
-            </div>
-        </div>
-    </div>
-
-    <!-- 节点B显示区域 -->
-    <div class="node-container" id="nodeBContainer">
-        <h2>节点B</h2>
-        <div class="data-container" id="dataContainerB">
-            <p class="content">正在加载节点B数据，请稍候...</p>
-        </div>
-        <!-- 进度条用于显示节点B的剩余流量百分比 -->
-        <div class="progress-container">
-            <div class="progress-bar">
-                <div class="progress-bar-inner" id="trafficProgressBarB">0%</div>
-            </div>
-        </div>
+    <!-- 节点显示区域 -->
+    <div class="node-container" id="nodeContainer">
+        <!-- 动态生成的节点数据将显示在这里 -->
     </div>
 
     <!-- 按钮用于复制订阅内容 -->
     <button class="btn" id="copySubscriptionBtn">复制订阅内容</button>
+
+    <!-- 手动刷新数据按钮 -->
+    <button class="btn" id="refreshDataBtn">刷新数据</button>
 </div>
 
 <script>
@@ -136,42 +116,64 @@
             name: '节点A',
             url: 'https://getafreenode.com/main/web_api.php?act=getuserinfo&uuid=88888888-8888-8888-8888-888888888888',
             progressBarId: 'trafficProgressBarA',
-            dataContainerId: 'dataContainerA'
+            subscriptionUrl: 'https://getafreenode.com/subscribe/?uuid=88888888-8888-8888-8888-888888888888'
         },
         {
             name: '节点B',
             url: 'https://getfreenodes.com/main/web_api.php?act=getuserinfo&uuid=88888888-8888-8888-8888-888888888888',
             progressBarId: 'trafficProgressBarB',
-            dataContainerId: 'dataContainerB'
+            subscriptionUrl: 'https://getfreenodes.com/subscribe/?uuid=88888888-8888-8888-8888-888888888888'
         }
     ];
 
     const corsProxy = 'https://api.allorigins.win/get?url=';
+    let finalBase64 = ''; // 用于保存生成的 Base64 订阅内容
+
+    // 动态生成节点UI
+    function createNodeUI(node) {
+        const nodeHtml = `
+            <div class="node-container">
+                <h2>${node.name}</h2>
+                <div class="data-container" id="dataContainer${node.name}">
+                    <p class="content">正在加载${node.name}数据，请稍候...</p>
+                </div>
+                <div class="progress-container">
+                    <div class="progress-bar">
+                        <div class="progress-bar-inner" id="${node.progressBarId}">0%</div>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.getElementById('nodeContainer').insertAdjacentHTML('beforeend', nodeHtml);
+    }
+
+    // 加载所有节点的UI
+    nodes.forEach(node => createNodeUI(node));
 
     // 获取远程用户数据
     async function fetchRemoteData(node) {
         try {
             const response = await fetch(corsProxy + encodeURIComponent(node.url));
             if (!response.ok) throw new Error('网络响应不正常');
-
+            
             const data = await response.json();
             const parsedContent = data.contents.trim();
-
+            
             // 检查返回内容是否为HTML
             if (parsedContent.startsWith('<')) {
                 throw new Error('返回的是HTML而不是JSON');
             }
 
-            const jsonData = JSON.parse(parsedContent);  // 将字符串解析为JSON对象
-            displayData(jsonData, node);  // 显示数据
+            const jsonData = JSON.parse(parsedContent);
+            displayData(jsonData, node);
         } catch (error) {
-            document.getElementById(node.dataContainerId).innerHTML = `<p class="content">获取数据时出错: ${error.message}</p>`;
+            document.getElementById(`dataContainer${node.name}`).innerHTML = `<p class="content">获取数据时出错: ${error.message}</p>`;
         }
     }
 
     // 显示用户数据
     function displayData(data, node) {
-        const dataContainer = document.getElementById(node.dataContainerId);
+        const dataContainer = document.getElementById(`dataContainer${node.name}`);
         const percent = data.percentNumber;
 
         dataContainer.innerHTML = `
@@ -187,15 +189,46 @@
         progressBar.textContent = percent + '%';
     }
 
-    // 加载所有节点的数据
-    function loadNodeData() {
-        nodes.forEach(node => {
-            fetchRemoteData(node); // 为每个节点获取数据
-        });
+    // 生成去除广告的最终 Base64 编码
+    function generateFinalBase64(decodedContent) {
+        const lines = decodedContent.split('\n').map(line => {
+            if (line.startsWith('vmess://')) {
+                const vmessDecoded = atob(line.slice(8)); // 去掉 'vmess://' 并解码 Base64
+                const vmessReplaced = replaceKeywords(vmessDecoded); // 替换广告内容
+                return 'vmess://' + btoa(vmessReplaced); // 重新编码为 Base64 并加上 'vmess://'
+            } else {
+                return replaceKeywords(line); // 对其他类型的链接进行广告替换
+            }
+        }).join('\n');
+        return btoa(lines); // 将处理后的内容重新编码为 Base64
     }
 
-    // 初次加载时获取所有节点数据
-    loadNodeData();
+    // 替换广告关键词
+    function replaceKeywords(text) {
+        return text.replace(/-GetAFreeNode\.com/g, '-getfreenode.pages.dev/')
+                   .replace(/-GetAFreeNode/g, '-getfreenode.pages.dev/');
+    }
+
+    // 复制订阅内容
+    document.getElementById('copySubscriptionBtn').addEventListener('click', function() {
+        if (finalBase64) {
+            navigator.clipboard.writeText(finalBase64).then(() => {
+                alert('订阅内容已复制到剪贴板');
+            }).catch(err => {
+                console.error('复制失败: ', err);
+            });
+        } else {
+            alert('订阅内容尚未加载，请稍后再试');
+        }
+    });
+
+    // 手动刷新数据功能
+    document.getElementById('refreshDataBtn').addEventListener('click', function() {
+        nodes.forEach(node => fetchRemoteData(node));
+    });
+
+    // 页面加载时自动调用
+    nodes.forEach(node => fetchRemoteData(node));
 </script>
 
 </body>
