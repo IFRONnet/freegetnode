@@ -133,21 +133,23 @@
             const response2 = await fetch(corsProxy + encodeURIComponent(targetUrl2));
             const duration2 = performance.now() - start2;
 
-            let data;
+            let response;
             if (duration1 < duration2) {
-                // 第一个API更快
-                if (!response1.ok) throw new Error('网络响应不正常');
-                data = await response1.json();
+                response = response1;
             } else {
-                // 第二个API更快
-                if (!response2.ok) throw new Error('网络响应不正常');
-                data = await response2.json();
+                response = response2;
             }
 
-            // 修正：提取返回的内容，并确保它是合法的JSON
-            const parsedContent = data.contents.trim();  // 获取并去除前后空白
-            const jsonData = JSON.parse(parsedContent);  // 将字符串解析为JSON对象
+            if (!response.ok) throw new Error('网络响应不正常');
+            const data = await response.json();
 
+            // 确认返回的是否是JSON数据，如果包含HTML则处理为错误
+            const parsedContent = data.contents.trim();
+            if (parsedContent.startsWith('<')) {
+                throw new Error('返回的是HTML而不是JSON');
+            }
+
+            const jsonData = JSON.parse(parsedContent);  // 将字符串解析为JSON对象
             displayData(jsonData);  // 显示数据
         } catch (error) {
             document.getElementById('dataContainer').innerHTML = `<p class="content">获取数据时出错: ${error.message}</p>`;
