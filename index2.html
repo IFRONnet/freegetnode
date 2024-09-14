@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>公益免费订阅</title>
     <style>
-        /* 样式保持不变 */
         body {
             font-family: 'Orbitron', sans-serif;
             margin: 0;
@@ -22,15 +21,19 @@
             text-shadow: 0 0 15px #00ffea, 0 0 25px #00ffea;
         }
         .container {
-            max-width: 800px;
+            max-width: 1200px;
             margin: 60px auto;
             padding: 30px;
             background: linear-gradient(145deg, #14181e, #0e1217);
             border-radius: 20px;
             box-shadow: 0 8px 20px rgba(0, 0, 0, 0.8), 0 0 20px #00ffea;
         }
-        .data-container {
+        .node-container {
             margin-bottom: 40px;
+            padding: 20px;
+            background: #1c1f25;
+            border-radius: 10px;
+            box-shadow: 0 0 15px #00ffea;
         }
         .progress-container {
             margin: 20px 0;
@@ -95,20 +98,33 @@
 <h1>公益免费订阅</h1>
 
 <div class="container">
-    <!-- 用户参数显示 -->
-    <div class="data-container" id="dataContainer">
-        <p class="content">正在加载用户参数，请稍候...</p>
-    </div>
-
-    <!-- 进度条用于显示剩余流量百分比 -->
-    <div class="progress-container">
-        <div class="progress-bar">
-            <div class="progress-bar-inner" id="trafficProgressBar">0%</div>
+    <!-- 节点A显示区域 -->
+    <div class="node-container" id="nodeAContainer">
+        <h2>节点A</h2>
+        <div class="data-container" id="dataContainerA">
+            <p class="content">正在加载节点A数据，请稍候...</p>
+        </div>
+        <!-- 进度条用于显示节点A的剩余流量百分比 -->
+        <div class="progress-container">
+            <div class="progress-bar">
+                <div class="progress-bar-inner" id="trafficProgressBarA">0%</div>
+            </div>
         </div>
     </div>
 
-    <!-- 按钮用于切换节点 -->
-    <button class="btn" id="switchNodeBtn">切换节点</button>
+    <!-- 节点B显示区域 -->
+    <div class="node-container" id="nodeBContainer">
+        <h2>节点B</h2>
+        <div class="data-container" id="dataContainerB">
+            <p class="content">正在加载节点B数据，请稍候...</p>
+        </div>
+        <!-- 进度条用于显示节点B的剩余流量百分比 -->
+        <div class="progress-container">
+            <div class="progress-bar">
+                <div class="progress-bar-inner" id="trafficProgressBarB">0%</div>
+            </div>
+        </div>
+    </div>
 
     <!-- 按钮用于复制订阅内容 -->
     <button class="btn" id="copySubscriptionBtn">复制订阅内容</button>
@@ -118,23 +134,24 @@
     const nodes = [
         {
             name: '节点A',
-            url: 'https://getafreenode.com/main/web_api.php?act=getuserinfo&uuid=88888888-8888-8888-8888-888888888888'
+            url: 'https://getafreenode.com/main/web_api.php?act=getuserinfo&uuid=88888888-8888-8888-8888-888888888888',
+            progressBarId: 'trafficProgressBarA',
+            dataContainerId: 'dataContainerA'
         },
         {
             name: '节点B',
-            url: 'https://getfreenodes.com/main/web_api.php?act=getuserinfo&uuid=88888888-8888-8888-8888-888888888888'
+            url: 'https://getfreenodes.com/main/web_api.php?act=getuserinfo&uuid=88888888-8888-8888-8888-888888888888',
+            progressBarId: 'trafficProgressBarB',
+            dataContainerId: 'dataContainerB'
         }
     ];
 
     const corsProxy = 'https://api.allorigins.win/get?url=';
-    let currentNodeIndex = 0;
-    let finalBase64 = ''; // 用于保存生成的 Base64 订阅内容
 
     // 获取远程用户数据
-    async function fetchRemoteHtml() {
+    async function fetchRemoteData(node) {
         try {
-            const currentNode = nodes[currentNodeIndex];
-            const response = await fetch(corsProxy + encodeURIComponent(currentNode.url));
+            const response = await fetch(corsProxy + encodeURIComponent(node.url));
             if (!response.ok) throw new Error('网络响应不正常');
 
             const data = await response.json();
@@ -146,19 +163,18 @@
             }
 
             const jsonData = JSON.parse(parsedContent);  // 将字符串解析为JSON对象
-            displayData(jsonData, currentNode.name);  // 显示数据
+            displayData(jsonData, node);  // 显示数据
         } catch (error) {
-            document.getElementById('dataContainer').innerHTML = `<p class="content">获取数据时出错: ${error.message}</p>`;
+            document.getElementById(node.dataContainerId).innerHTML = `<p class="content">获取数据时出错: ${error.message}</p>`;
         }
     }
 
     // 显示用户数据
-    function displayData(data, nodeName) {
-        const dataContainer = document.getElementById('dataContainer');
+    function displayData(data, node) {
+        const dataContainer = document.getElementById(node.dataContainerId);
         const percent = data.percentNumber;
 
         dataContainer.innerHTML = `
-            <div class="content"><strong>当前节点：</strong> ${nodeName}</div>
             <div class="content"><strong>订阅最后使用时间：</strong> ${new Date(data.lastUseTime * 1000).toLocaleString()}</div>
             <div class="content"><strong>订阅速度限制：</strong> ${data.speedlimit} Mbps</div>
             <div class="content"><strong>剩余流量：</strong> ${data.remainingTraffic}</div>
@@ -166,22 +182,20 @@
         `;
 
         // 更新进度条
-        const progressBar = document.getElementById('trafficProgressBar');
+        const progressBar = document.getElementById(node.progressBarId);
         progressBar.style.width = percent + '%';
         progressBar.textContent = percent + '%';
     }
 
-    // 切换节点
-    function switchNode() {
-        currentNodeIndex = (currentNodeIndex + 1) % nodes.length; // 切换到下一个节点
-        fetchRemoteHtml(); // 切换节点后重新加载数据
+    // 加载所有节点的数据
+    function loadNodeData() {
+        nodes.forEach(node => {
+            fetchRemoteData(node); // 为每个节点获取数据
+        });
     }
 
-    // 事件绑定
-    document.getElementById('switchNodeBtn').addEventListener('click', switchNode);
-
-    // 初次加载时获取数据
-    fetchRemoteHtml();
+    // 初次加载时获取所有节点数据
+    loadNodeData();
 </script>
 
 </body>
