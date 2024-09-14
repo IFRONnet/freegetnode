@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>公益免费订阅</title>
+    <style>
+        /* 样式保持不变 */
+        body {
+            font-family: 'Orbitron', sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(145deg, #0b0c10, #1c1f25);
+            color: #ffffff;
+            overflow-x: hidden;
+        }
+        h1 {
+            color: #00ffea;
+            text-align: center;
+            margin-top: 50px;
+            font-size: 3rem;
+            text-shadow: 0 0 15px #00ffea, 0 0 25px #00ffea;
+        }
+        .container {
+            max-width: 800px;
+            margin: 60px auto;
+            padding: 30px;
+            background: linear-gradient(145deg, #14181e, #0e1217);
+            border-radius: 20px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.8), 0 0 20px #00ffea;
+        }
+        .data-container {
+            margin-bottom: 40px;
+        }
+        .progress-container {
+            margin: 20px 0;
+        }
+        .progress-bar {
+            width: 100%;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            overflow: hidden;
+            height: 35px;
+            box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.8), 0 0 20px #00ffea;
+            position: relative;
+        }
+        .progress-bar-inner {
+            height: 100%;
+            background: linear-gradient(90deg, #00ffea, #0066ff);
+            width: 0;
+            text-align: center;
+            color: white;
+            line-height: 35px;
+            text-shadow: 0 0 8px #000, 0 0 8px #00ffea;
+            border-radius: 10px;
+            transition: width 0.5s ease-out;
+        }
+        .btn {
+            padding: 15px 30px;
+            background: linear-gradient(145deg, #0066ff, #00ffea);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 1.3rem;
+            transition: background-color 0.3s, box-shadow 0.3s;
+            display: inline-block;
+            text-align: center;
+            margin-top: 20px;
+            text-decoration: none;
+            box-shadow: 0 0 20px #00ffea, 0 0 20px #0066ff;
+        }
+        .btn:hover {
+            background: linear-gradient(145deg, #00ffea, #0066ff);
+            box-shadow: 0 0 30px #00ffea, 0 0 30px #0066ff;
+        }
+        .btn:active {
+            background: linear-gradient(145deg, #00ffea, #0033cc);
+        }
+        .content {
+            font-size: 1.3rem;
+            line-height: 2;
+            color: #c0d5df;
+            padding: 15px 0;
+        }
+        .progress-text {
+            font-size: 1.2rem;
+            text-shadow: 0 0 10px #00ffea;
+        }
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500&display=swap');
+    </style>
+</head>
+<body>
+
+<h1>公益免费订阅</h1>
+
+<div class="container">
+    <!-- 用户参数显示 -->
+    <div class="data-container" id="dataContainer">
+        <p class="content">正在加载用户参数，请稍候...</p>
+    </div>
+
+    <!-- 进度条用于显示剩余流量百分比 -->
+    <div class="progress-container">
+        <div class="progress-bar">
+            <div class="progress-bar-inner" id="trafficProgressBar">0%</div>
+        </div>
+    </div>
+
+    <!-- 按钮用于复制订阅内容 -->
+    <button class="btn" id="copySubscriptionBtn">复制订阅内容</button>
+
+    <!-- 手动刷新数据按钮 -->
+    <button class="btn" id="refreshDataBtn">刷新数据</button>
+</div>
+
+<script>
+    const targetUrl1 = 'https://getafreenode.com/main/web_api.php?act=getuserinfo&uuid=88888888-8888-8888-8888-888888888888';
+    const targetUrl2 = 'https://getfreenodes.com/api/getuserinfo?uuid=88888888-8888-8888-8888-888888888888'; // 第二个API
+    const corsProxy = 'https://api.allorigins.win/get?url=';
+    let finalBase64 = ''; // 用于保存生成的 Base64 订阅内容
+
+    // 获取远程用户数据，并计算响应速度
+    async function fetchRemoteHtml() {
+        try {
+            // 测试第一个API响应速度
+            const start1 = performance.now();
+            const response1 = await fetch(corsProxy + encodeURIComponent(targetUrl1));
+            const duration1 = performance.now() - start1;
+
+            // 测试第二个API响应速度
+            const start2 = performance.now();
+            const response2 = await fetch(corsProxy + encodeURIComponent(targetUrl2));
+            const duration2 = performance.now() - start2;
+
+            let data;
+            if (duration1 < duration2) {
+                // 第一个API更快
+                if (!response1.ok) throw new Error('网络响应不正常');
+                data = await response1.json();
+            } else {
+                // 第二个API更快
+                if (!response2.ok) throw new Error('网络响应不正常');
+                data = await response2.json();
+            }
+
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(data.contents, 'text/html');
+            displayData(htmlDoc.body.textContent);
+        } catch (error) {
+            document.getElementById('dataContainer').innerHTML = `<p class="content">获取数据时出错: ${error.message}</p>`;
+        }
+    }
+
+    // 显示用户数据
+    function displayData(jsonText) {
+        const data = JSON.parse(jsonText);
+        const dataContainer = document.getElementById('dataContainer');
+        const percent = data.percentNumber;
+
+        dataContainer.innerHTML = `
+            <div class="content"><strong>订阅最后使用时间：</strong> ${new Date(data.lastUseTime * 1000).toLocaleString()}</div>
+            <div class="content"><strong>订阅速度限制：</strong> ${data.speedlimit} Mbps</div>
+            <div class="content"><strong>剩余流量：</strong> ${data.remainingTraffic}</div>
+            <div class="content"><strong>使用流量百分比：</strong> ${percent}%</div>
+        `;
+
+        // 更新进度条
+        const progressBar = document.getElementById('trafficProgressBar');
+        progressBar.style.width = percent + '%';
+        progressBar.textContent = percent + '%';
+    }
+
+    // 事件绑定
+    document.getElementById('refreshDataBtn').addEventListener('click', fetchRemoteHtml);
+
+    // 初次加载时获取数据
+    fetchRemoteHtml();
+</script>
+
+</body>
+</html>
