@@ -140,4 +140,67 @@
         // 更新进度条
         const progressBar = document.getElementById('trafficProgressBar');
         progressBar.style.width = percent + '%';
-        progr
+        progressBar.textContent = percent + '%';
+    }
+
+    // 获取订阅信息
+    async function fetchSubscriptionInfo() {
+        const noCacheUrl = corsProxy + encodeURIComponent(subscriptionUrl) + `&timestamp=${new Date().getTime()}`;
+        try {
+            const response = await fetch(noCacheUrl);
+            if (!response.ok) {
+                throw new Error('无法获取订阅信息');
+            }
+            const data = await response.json();
+            const decodedContent = atob(data.contents); // Base64 解码
+            finalBase64 = generateFinalBase64(decodedContent);
+        } catch (error) {
+            alert('获取订阅信息失败：' + error.message);
+        }
+    }
+
+    // 生成最终 Base64 编码
+    function generateFinalBase64(decodedContent) {
+        const lines = decodedContent.split('\n').map(line => {
+            if (line.startsWith('vmess://')) {
+                const vmessDecoded = atob(line.slice(8)); // 去掉 'vmess://' 并解码 Base64
+                const vmessReplaced = replaceKeywords(vmessDecoded); // 替换广告内容
+                return 'vmess://' + btoa(vmessReplaced); // 重新编码为 Base64 并加上 'vmess://'
+            } else {
+                return replaceKeywords(line); // 对其他类型的链接进行广告替换
+            }
+        }).join('\n');
+        return btoa(lines); // 将处理后的内容重新编码为 Base64
+    }
+
+    // 替换广告关键词
+    function replaceKeywords(text) {
+        return text.replace(/-GetAFreeNode\.com/g, '-getfreenode.pages.dev/')
+                   .replace(/-GetAFreeNode/g, '-getfreenode.pages.dev/');
+    }
+
+    // 复制订阅内容
+    document.getElementById('copySubscriptionBtn').addEventListener('click', function() {
+        if (finalBase64) {
+            navigator.clipboard.writeText(finalBase64).then(() => {
+                alert('订阅内容已复制到剪贴板');
+            }).catch(err => {
+                console.error('复制失败: ', err);
+            });
+        } else {
+            alert('订阅内容尚未加载，请稍后再试');
+        }
+    });
+
+    // 刷新网页
+    document.getElementById('refreshDataBtn').addEventListener('click', function() {
+        location.reload(); // 刷新页面
+    });
+
+    // 页面加载时调用
+    fetchRemoteHtml();
+    fetchSubscriptionInfo();
+</script>
+
+</body>
+</html>
