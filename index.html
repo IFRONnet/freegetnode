@@ -131,10 +131,10 @@
 
         dataContainer.innerHTML = `
             <div class="content"><strong>订阅最后使用时间：</strong> ${new Date(data.lastUseTime * 1000).toLocaleString()}</div>
-            <div class="content"><strong>订阅速度限制：</strong> ${data.speedlimit} Mbps</div>
-            <div class="content"><strong>剩余流量：</strong> ${data.remainingTraffic}</div>
-            <div class="content"><strong>已用流量百分比：</strong> ${percent}%</div>
-            <div class="content"><strong>重置次数：</strong> ${data.resetTimes}</div>
+            <div class="content"><strong>订阅速度最大限制：</strong> ${data.speedlimit} Mbps</div>
+            <div class="content"><strong>当前订阅剩余流量：</strong> ${data.remainingTraffic}</div>
+            <div class="content"><strong>已用流量的百分比：</strong> ${percent}%</div>
+            <div class="content"><strong>已自动重置的次数：</strong> ${data.resetTimes}</div>
         `;
 
         // 更新进度条
