@@ -237,90 +237,6 @@
             text-align: center;
         }
 
-        /* 新增：分类和节点样式 */
-        .categories {
-            margin-top: 30px;
-        }
-
-        .category {
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
-            margin-bottom: 15px;
-            overflow: hidden;
-            transition: max-height 0.3s ease;
-        }
-
-        .category-header {
-            padding: 15px 20px;
-            cursor: pointer;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: rgba(0, 180, 219, 0.2);
-        }
-
-        .category-header:hover {
-            background: rgba(0, 180, 219, 0.3);
-        }
-
-        .category-header h2 {
-            margin: 0;
-            font-size: 1.2rem;
-            color: var(--text-color);
-        }
-
-        .category-header .toggle-icon {
-            font-size: 1.5rem;
-            transition: transform 0.3s ease;
-        }
-
-        .category.collapsed .toggle-icon {
-            transform: rotate(-90deg);
-        }
-
-        .category-content {
-            max-height: 0;
-            overflow: hidden;
-            transition: max-height 0.3s ease;
-        }
-
-        .category.expanded .category-content {
-            max-height: 1000px; /* 足够大的值以显示所有内容 */
-        }
-
-        .node {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 10px 20px;
-            border-top: 1px solid rgba(255, 255, 255, 0.2);
-            background: rgba(255, 255, 255, 0.05);
-        }
-
-        .node:nth-child(even) {
-            background: rgba(255, 255, 255, 0.1);
-        }
-
-        .node-name {
-            font-size: 1rem;
-            color: #e0e0e0;
-        }
-
-        .copy-btn {
-            padding: 5px 15px;
-            background: var(--accent-color);
-            color: #fff;
-            border: none;
-            border-radius: 20px;
-            cursor: pointer;
-            font-size: 0.9rem;
-            transition: background 0.3s;
-        }
-
-        .copy-btn:hover {
-            background: darkorange;
-        }
-
         /* 响应式设计 */
         @media (max-width: 600px) {
             h1 {
@@ -353,16 +269,6 @@
                 top: 10px;
                 max-width: 90%;
             }
-
-            /* 新增：分类和节点样式适配 */
-            .category-header h2 {
-                font-size: 1rem;
-            }
-
-            .copy-btn {
-                font-size: 0.8rem;
-                padding: 5px 10px;
-            }
         }
     </style>
 </head>
@@ -386,11 +292,6 @@
     <div class="button-group">
         <button class="btn" id="copySubscriptionBtn">复制订阅内容</button>
         <button class="btn" id="refreshDataBtn">刷新数据</button>
-    </div>
-
-    <!-- 新增：分类和节点展示 -->
-    <div class="categories" id="categoriesContainer">
-        <!-- 分类将动态添加到这里 -->
     </div>
 </div>
 
@@ -508,20 +409,6 @@
         try {
             const data = await fetchDataFromUrlsWithRetries(urls, 10, 10000, 5000);
             const decodedContent = atob(data.contents); // Base64 解码
-
-            // 解析订阅信息
-            const subscriptionData = JSON.parse(decodedContent);
-
-            // 假设 subscriptionData 包含 categories 信息
-            if (subscriptionData.categories && Array.isArray(subscriptionData.categories)) {
-                displayCategories(subscriptionData.categories);
-            } else {
-                showMessage('订阅信息中缺少分类数据。', 'error');
-                const categoriesContainer = document.getElementById('categoriesContainer');
-                categoriesContainer.innerHTML = '<p class="content">暂无节点分类信息。</p>';
-            }
-
-            // 生成最终 Base64 编码（用于复制订阅内容）
             finalBase64 = generateFinalBase64(decodedContent);
         } catch (error) {
             showMessage('获取订阅信息失败，请稍后再试。', 'error');
@@ -608,90 +495,6 @@
         fetchUserData();
         fetchSubscriptionInfo();
     };
-
-    // 新增：显示分类和节点
-    function displayCategories(categories) {
-        const categoriesContainer = document.getElementById('categoriesContainer');
-        categoriesContainer.innerHTML = ''; // 清空现有内容
-
-        categories.forEach((category, catIndex) => {
-            // 创建分类元素
-            const categoryElement = document.createElement('div');
-            categoryElement.className = 'category collapsed';
-
-            // 创建分类头部
-            const categoryHeader = document.createElement('div');
-            categoryHeader.className = 'category-header';
-            categoryHeader.innerHTML = `
-                <h2>${category.name}</h2>
-                <span class="toggle-icon">&#9654;</span>
-            `;
-            categoryElement.appendChild(categoryHeader);
-
-            // 创建分类内容
-            const categoryContent = document.createElement('div');
-            categoryContent.className = 'category-content';
-
-            category.nodes.forEach((node, nodeIndex) => {
-                const nodeElement = document.createElement('div');
-                nodeElement.className = 'node';
-                nodeElement.innerHTML = `
-                    <span class="node-name">${node.name}</span>
-                    <button class="copy-btn" data-content="${node.content}">复制</button>
-                `;
-                categoryContent.appendChild(nodeElement);
-            });
-
-            categoryElement.appendChild(categoryContent);
-            categoriesContainer.appendChild(categoryElement);
-
-            // 添加事件监听器以展开/折叠分类
-            categoryHeader.addEventListener('click', () => {
-                categoryElement.classList.toggle('expanded');
-                categoryElement.classList.toggle('collapsed');
-            });
-        });
-
-        // 添加复制按钮的事件监听器
-        const copyButtons = document.querySelectorAll('.copy-btn');
-        copyButtons.forEach(button => {
-            button.addEventListener('click', () => {
-                const content = button.getAttribute('data-content');
-                navigator.clipboard.writeText(content).then(() => {
-                    showMessage('节点内容已复制到剪贴板', 'success');
-                }).catch(err => {
-                    showMessage('复制失败，请重试', 'error');
-                });
-            });
-        });
-    }
-
-    // 示例数据结构（仅供参考）
-    /*
-    {
-        "lastUseTime": 1697049600,
-        "speedlimit": 100,
-        "remainingTraffic": "500GB",
-        "percentNumber": 75,
-        "resetTimes": 3,
-        "categories": [
-            {
-                "name": "节点分类1",
-                "nodes": [
-                    { "name": "节点1", "content": "vmess://..." },
-                    { "name": "节点2", "content": "vmess://..." }
-                ]
-            },
-            {
-                "name": "节点分类2",
-                "nodes": [
-                    { "name": "节点3", "content": "vmess://..." },
-                    { "name": "节点4", "content": "vmess://..." }
-                ]
-            }
-        ]
-    }
-    */
 </script>
 
 </body>
