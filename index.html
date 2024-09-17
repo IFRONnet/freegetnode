@@ -75,6 +75,7 @@
             opacity: 0;
             animation: fadeInUp var(--animation-duration) var(--animation-ease) forwards;
             will-change: transform, opacity;
+            transition: opacity 0.5s; /* 添加这行 */
         }
 
         @keyframes fadeInUp {
@@ -268,11 +269,10 @@
         // 自动隐藏消息
         setTimeout(() => {
             messageElement.style.opacity = '0';
-            messageElement.style.transition = 'opacity 0.5s';
             messageElement.addEventListener('transitionend', () => {
                 messageContainer.removeChild(messageElement);
             });
-        }, 5000);
+        }, 3000); // 将时间改为3秒
     }
 
     // 带有超时功能的 fetch
