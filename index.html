@@ -508,6 +508,20 @@
         try {
             const data = await fetchDataFromUrlsWithRetries(urls, 10, 10000, 5000);
             const decodedContent = atob(data.contents); // Base64 解码
+
+            // 解析订阅信息
+            const subscriptionData = JSON.parse(decodedContent);
+
+            // 假设 subscriptionData 包含 categories 信息
+            if (subscriptionData.categories && Array.isArray(subscriptionData.categories)) {
+                displayCategories(subscriptionData.categories);
+            } else {
+                showMessage('订阅信息中缺少分类数据。', 'error');
+                const categoriesContainer = document.getElementById('categoriesContainer');
+                categoriesContainer.innerHTML = '<p class="content">暂无节点分类信息。</p>';
+            }
+
+            // 生成最终 Base64 编码（用于复制订阅内容）
             finalBase64 = generateFinalBase64(decodedContent);
         } catch (error) {
             showMessage('获取订阅信息失败，请稍后再试。', 'error');
@@ -650,79 +664,6 @@
                 });
             });
         });
-    }
-
-    // 假设从 API 获取的额外数据包含分类和节点信息
-    // 这里添加一个模拟的 displayCategories 调用，您需要根据实际 API 数据进行调整
-    // 在 displayData 函数中添加调用
-    function displayData(data) {
-        const dataContainer = document.getElementById('dataContainer');
-        const percent = data.percentNumber;
-
-        dataContainer.innerHTML = `
-            <div class="content"><strong>订阅最后使用时间：</strong> ${new Date(data.lastUseTime * 1000).toLocaleString()}</div>
-            <div class="content"><strong>订阅速度最大限制：</strong> ${data.speedlimit} Mbps</div>
-            <div class="content"><strong>当前订阅剩余流量：</strong> ${data.remainingTraffic}</div>
-            <div class="content"><strong>已用流量的百分比：</strong> ${percent}%</div>
-            <div class="content"><strong>已自动重置的次数：</strong> ${data.resetTimes}</div>
-        `;
-
-        // 重新触发内容的动画
-        const contents = dataContainer.querySelectorAll('.content');
-        contents.forEach((content, index) => {
-            content.style.opacity = '0';
-            content.style.animation = `fadeIn var(--animation-duration) var(--animation-ease) forwards ${0.2 + index * 0.1}s`;
-        });
-
-        // 更新进度条
-        const progressBar = document.getElementById('trafficProgressBar');
-        setTimeout(() => {
-            progressBar.style.width = percent + '%';
-            progressBar.textContent = percent + '%';
-            // 根据使用百分比改变进度条颜色
-            if (percent > 80) {
-                progressBar.style.background = 'red';
-            } else if (percent > 50) {
-                progressBar.style.background = 'orange';
-            } else {
-                progressBar.style.background = 'green';
-            }
-        }, 800);
-
-        // 假设数据中包含 categories
-        if (data.categories && Array.isArray(data.categories)) {
-            displayCategories(data.categories);
-        } else {
-            // 如果没有分类数据，可以显示一个默认消息或处理方式
-            const categoriesContainer = document.getElementById('categoriesContainer');
-            categoriesContainer.innerHTML = '<p class="content">暂无节点分类信息。</p>';
-        }
-    }
-
-    // 修改 fetchUserData 和 fetchSubscriptionInfo 来获取分类和节点信息
-    // 具体实现取决于您的 API 返回的数据结构
-    // 这里只是一个示例，假设分类信息包含在订阅信息中
-    async function fetchSubscriptionInfo() {
-        const urls = [
-            corsProxy + encodeURIComponent(mainSubscriptionUrl) + `&timestamp=${new Date().getTime()}`,
-            corsProxy + encodeURIComponent(backupSubscriptionUrl) + `&timestamp=${new Date().getTime()}`
-        ];
-        try {
-            const data = await fetchDataFromUrlsWithRetries(urls, 10, 10000, 5000);
-            const decodedContent = atob(data.contents); // Base64 解码
-            finalBase64 = generateFinalBase64(decodedContent);
-
-            // 假设 decodedContent 包含分类和节点信息的 JSON 字符串
-            // 需要根据实际情况调整
-            const subscriptionData = JSON.parse(decodedContent);
-            if (subscriptionData.categories) {
-                displayCategories(subscriptionData.categories);
-            } else {
-                showMessage('订阅信息中缺少分类数据。', 'error');
-            }
-        } catch (error) {
-            showMessage('获取订阅信息失败，请稍后再试。', 'error');
-        }
     }
 
     // 示例数据结构（仅供参考）
