@@ -1,28 +1,60 @@
-<!DOCTYPE html> 
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
+    <!-- 头部内容 -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>公益免费订阅</title>
+    <!-- 引入更具现代感的字体 -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
+    <!-- 引入动画库 -->
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
+        /* 引入 Poppins 字体 */
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
+
+        :root {
+            /* 定义颜色和动画变量 */
+            --primary-color: #00b4db;
+            --secondary-color: #0083b0;
+            --background-gradient: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            --text-color: #ffffff;
+            --accent-color: #f5af19;
+            --error-color: #ff4d4d;
+            --success-color: #4dff4d;
+            --info-color: #00e6ff;
+            --animation-duration: 0.8s;
+            --animation-ease: cubic-bezier(0.4, 0.0, 0.2, 1);
+        }
 
         body {
-            font-family: 'Roboto', sans-serif;
+            font-family: 'Poppins', sans-serif;
             margin: 0;
             padding: 0;
-            background: linear-gradient(145deg, #141E30, #243B55);
-            color: #ffffff;
+            background: var(--background-gradient);
+            color: var(--text-color);
             overflow-x: hidden;
+            animation: fadeIn var(--animation-duration) var(--animation-ease) forwards;
+            will-change: opacity;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
         }
 
         h1 {
-            color: #00e6ff;
+            color: var(--primary-color);
             text-align: center;
             margin-top: 40px;
             font-size: 3.5rem;
-            text-shadow: 0 0 15px #00e6ff, 0 0 25px #00e6ff;
+            text-shadow: 0 0 15px var(--primary-color), 0 0 25px var(--primary-color);
+            animation: slideDown var(--animation-duration) var(--animation-ease) forwards;
+            will-change: transform, opacity;
+        }
+
+        @keyframes slideDown {
+            from { transform: translateY(-50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
         }
 
         .message-container {
@@ -35,50 +67,66 @@
         .message {
             display: inline-block;
             padding: 10px 20px;
-            border-radius: 5px;
+            border-radius: 50px;
             margin-bottom: 10px;
             font-size: 1rem;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(5px);
+            opacity: 0;
+            animation: fadeInUp var(--animation-duration) var(--animation-ease) forwards;
+            will-change: transform, opacity;
+        }
+
+        @keyframes fadeInUp {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
         }
 
         .message.info {
-            background-color: rgba(0, 230, 255, 0.2);
-            color: #00e6ff;
+            border-left: 5px solid var(--info-color);
         }
 
         .message.error {
-            background-color: rgba(255, 0, 0, 0.2);
-            color: #ff4d4d;
+            border-left: 5px solid var(--error-color);
         }
 
         .message.success {
-            background-color: rgba(0, 255, 0, 0.2);
-            color: #4dff4d;
+            border-left: 5px solid var(--success-color);
         }
 
         .container {
             max-width: 800px;
             margin: 50px auto;
             padding: 30px;
-            background: rgba(0, 0, 0, 0.5);
+            background: rgba(255, 255, 255, 0.1);
             border-radius: 15px;
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.7), 0 0 20px #00e6ff;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
             backdrop-filter: blur(10px);
+            opacity: 0;
+            animation: fadeIn var(--animation-duration) var(--animation-ease) forwards 0.2s;
+            will-change: opacity;
         }
 
         .content {
             font-size: 1.2rem;
             line-height: 1.8;
-            color: #cfd8dc;
+            color: #e0e0e0;
             margin-bottom: 20px;
+            opacity: 0;
+            animation: fadeIn var(--animation-duration) var(--animation-ease) forwards 0.4s;
+            will-change: opacity;
         }
 
         .progress-container {
             margin: 30px 0;
+            opacity: 0;
+            animation: fadeInUp var(--animation-duration) var(--animation-ease) forwards 0.6s;
+            will-change: transform, opacity;
         }
 
         .progress-bar {
             width: 100%;
-            background-color: rgba(255, 255, 255, 0.1);
+            background-color: rgba(255, 255, 255, 0.2);
             border-radius: 10px;
             overflow: hidden;
             height: 30px;
@@ -87,40 +135,69 @@
 
         .progress-bar-inner {
             height: 100%;
-            background: linear-gradient(90deg, #00e6ff, #0078ff);
-            width: 0;
+            background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+            width: 0%;
             text-align: center;
-            color: white;
+            color: #ffffff;
             line-height: 30px;
-            text-shadow: 0 0 8px #000, 0 0 8px #00e6ff;
+            text-shadow: 0 0 8px #000;
             border-radius: 10px;
-            transition: width 0.5s ease-out;
+            transition: width 1s var(--animation-ease);
+            will-change: width;
         }
 
         .btn {
-            padding: 12px 30px;
-            background: linear-gradient(145deg, #0078ff, #00e6ff);
+            padding: 15px 40px;
+            background: var(--primary-color);
             color: white;
             border: none;
-            border-radius: 12px;
+            border-radius: 50px;
             cursor: pointer;
             font-size: 1rem;
-            transition: background-color 0.3s, box-shadow 0.3s;
+            transition: background 0.3s, box-shadow 0.3s, transform 0.2s;
             display: inline-block;
             text-align: center;
             margin-top: 20px;
             text-decoration: none;
-            box-shadow: 0 0 20px #00e6ff, 0 0 20px #0078ff;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
             margin-right: 10px;
+            opacity: 0;
+            animation: fadeInUp var(--animation-duration) var(--animation-ease) forwards 0.8s;
+            position: relative;
+            overflow: hidden;
+            will-change: transform, opacity;
+        }
+
+        .btn::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: rgba(255,255,255,0.2);
+            transform: skewX(-45deg);
+            transition: left 0.5s var(--animation-ease);
+            will-change: left;
+        }
+
+        .btn:hover::after {
+            left: 100%;
         }
 
         .btn:hover {
-            background: linear-gradient(145deg, #00e6ff, #0078ff);
-            box-shadow: 0 0 30px #00e6ff, 0 0 30px #0078ff;
+            background: var(--secondary-color);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+            transform: translateY(-3px);
         }
 
         .btn:active {
-            background: linear-gradient(145deg, #00e6ff, #005bcc);
+            transform: scale(0.97);
+            transition: transform 0.1s var(--animation-ease);
+        }
+
+        .button-group {
+            text-align: center;
         }
 
         /* 响应式设计 */
@@ -133,7 +210,7 @@
             }
             .btn {
                 font-size: 0.9rem;
-                padding: 10px 20px;
+                padding: 12px 30px;
             }
             .progress-bar {
                 height: 25px;
@@ -183,10 +260,18 @@
     // 显示消息
     function showMessage(message, type = 'info') {
         const messageContainer = document.getElementById('messageContainer');
-        messageContainer.innerHTML = `<div class="message ${type}">${message}</div>`;
+        const messageElement = document.createElement('div');
+        messageElement.className = `message ${type}`;
+        messageElement.innerHTML = message;
+        messageContainer.appendChild(messageElement);
+
         // 自动隐藏消息
         setTimeout(() => {
-            messageContainer.innerHTML = '';
+            messageElement.style.opacity = '0';
+            messageElement.style.transition = 'opacity 0.5s';
+            messageElement.addEventListener('transitionend', () => {
+                messageContainer.removeChild(messageElement);
+            });
         }, 5000);
     }
 
@@ -273,10 +358,19 @@
             <div class="content"><strong>已自动重置的次数：</strong> ${data.resetTimes}</div>
         `;
 
+        // 重新触发内容的动画
+        const contents = dataContainer.querySelectorAll('.content');
+        contents.forEach((content, index) => {
+            content.style.opacity = '0';
+            content.style.animation = `fadeIn var(--animation-duration) var(--animation-ease) forwards ${0.2 + index * 0.1}s`;
+        });
+
         // 更新进度条
         const progressBar = document.getElementById('trafficProgressBar');
-        progressBar.style.width = percent + '%';
-        progressBar.textContent = percent + '%';
+        setTimeout(() => {
+            progressBar.style.width = percent + '%';
+            progressBar.textContent = percent + '%';
+        }, 800);
 
         // 根据使用百分比改变进度条颜色
         if (percent > 80) {
