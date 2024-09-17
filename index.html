@@ -4,15 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>公益免费订阅</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
+
         body {
-            font-family: 'Orbitron', sans-serif;
+            font-family: 'Roboto', sans-serif;
             margin: 0;
             padding: 0;
-            background: linear-gradient(145deg, #1f1f1f, #2e2e2e);
+            background: linear-gradient(145deg, #141E30, #243B55);
             color: #ffffff;
             overflow-x: hidden;
         }
+
         h1 {
             color: #00e6ff;
             text-align: center;
@@ -20,70 +24,131 @@
             font-size: 3.5rem;
             text-shadow: 0 0 15px #00e6ff, 0 0 25px #00e6ff;
         }
+
+        .message-container {
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 10px;
+            text-align: center;
+        }
+
+        .message {
+            display: inline-block;
+            padding: 10px 20px;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            font-size: 1rem;
+        }
+
+        .message.info {
+            background-color: rgba(0, 230, 255, 0.2);
+            color: #00e6ff;
+        }
+
+        .message.error {
+            background-color: rgba(255, 0, 0, 0.2);
+            color: #ff4d4d;
+        }
+
+        .message.success {
+            background-color: rgba(0, 255, 0, 0.2);
+            color: #4dff4d;
+        }
+
         .container {
             max-width: 800px;
             margin: 50px auto;
             padding: 30px;
-            background: #282828;
+            background: rgba(0, 0, 0, 0.5);
             border-radius: 15px;
             box-shadow: 0 8px 20px rgba(0, 0, 0, 0.7), 0 0 20px #00e6ff;
+            backdrop-filter: blur(10px);
         }
+
         .content {
-            font-size: 1.4rem;
-            line-height: 2;
+            font-size: 1.2rem;
+            line-height: 1.8;
             color: #cfd8dc;
-            margin-bottom: 30px;
+            margin-bottom: 20px;
         }
+
         .progress-container {
             margin: 30px 0;
         }
+
         .progress-bar {
             width: 100%;
             background-color: rgba(255, 255, 255, 0.1);
             border-radius: 10px;
             overflow: hidden;
-            height: 40px;
+            height: 30px;
             position: relative;
         }
+
         .progress-bar-inner {
             height: 100%;
             background: linear-gradient(90deg, #00e6ff, #0078ff);
             width: 0;
             text-align: center;
             color: white;
-            line-height: 40px;
+            line-height: 30px;
             text-shadow: 0 0 8px #000, 0 0 8px #00e6ff;
             border-radius: 10px;
             transition: width 0.5s ease-out;
         }
+
         .btn {
-            padding: 15px 40px;
+            padding: 12px 30px;
             background: linear-gradient(145deg, #0078ff, #00e6ff);
             color: white;
             border: none;
             border-radius: 12px;
             cursor: pointer;
-            font-size: 1.3rem;
+            font-size: 1rem;
             transition: background-color 0.3s, box-shadow 0.3s;
             display: inline-block;
             text-align: center;
             margin-top: 20px;
             text-decoration: none;
             box-shadow: 0 0 20px #00e6ff, 0 0 20px #0078ff;
+            margin-right: 10px;
         }
+
         .btn:hover {
             background: linear-gradient(145deg, #00e6ff, #0078ff);
             box-shadow: 0 0 30px #00e6ff, 0 0 30px #0078ff;
         }
+
         .btn:active {
             background: linear-gradient(145deg, #00e6ff, #005bcc);
         }
-        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500&display=swap');
+
+        /* 响应式设计 */
+        @media (max-width: 600px) {
+            h1 {
+                font-size: 2.5rem;
+            }
+            .content {
+                font-size: 1rem;
+            }
+            .btn {
+                font-size: 0.9rem;
+                padding: 10px 20px;
+            }
+            .progress-bar {
+                height: 25px;
+            }
+            .progress-bar-inner {
+                line-height: 25px;
+            }
+        }
     </style>
 </head>
 <body>
 
 <h1>公益免费订阅</h1>
+
+<div class="message-container" id="messageContainer"></div>
 
 <div class="container">
     <div class="content" id="dataContainer">
@@ -96,44 +161,107 @@
         </div>
     </div>
 
-    <button class="btn" id="copySubscriptionBtn">复制订阅内容</button>
-    <button class="btn" id="refreshDataBtn">刷新数据</button>
+    <div class="button-group">
+        <button class="btn" id="copySubscriptionBtn">复制订阅内容</button>
+        <button class="btn" id="refreshDataBtn">刷新数据</button>
+    </div>
 </div>
 
 <script>
-    const mainTargetUrl = 'https://getfreenodes.com/main/web_api.php?act=getuserinfo&uuid=88888888-8888-8888-8888-888888888888';
-    const backupTargetUrl = 'https://getafreenode.com/main/web_api.php?act=getuserinfo&uuid=88888888-8888-8888-8888-888888888888';
-    const mainSubscriptionUrl = 'https://getfreenodes.com/subscribe/?uuid=88888888-8888-8888-8888-888888888888';
-    const backupSubscriptionUrl = 'https://getafreenode.com/subscribe/?uuid=88888888-8888-8888-8888-888888888888';
+    const uuid = '88888888-8888-8888-8888-888888888888';
+    const mainDomain = 'https://getfreenodes.com';
+    const backupDomain = 'https://getafreenode.com';
+
+    const mainApiUrl = `${mainDomain}/main/web_api.php?act=getuserinfo&uuid=${uuid}`;
+    const backupApiUrl = `${backupDomain}/main/web_api.php?act=getuserinfo&uuid=${uuid}`;
+    const mainSubscriptionUrl = `${mainDomain}/subscribe/?uuid=${uuid}`;
+    const backupSubscriptionUrl = `${backupDomain}/subscribe/?uuid=${uuid}`;
+
     const corsProxy = 'https://api.allorigins.win/get?url=';
     let finalBase64 = ''; // 用于保存生成的 Base64 订阅内容
 
-    // 获取用户数据，尝试备用 API 如果主 API 失败
-    async function fetchRemoteHtml(useBackup = false) {
-        const targetUrl = useBackup ? backupTargetUrl : mainTargetUrl;
-        const noCacheUrl = corsProxy + encodeURIComponent(targetUrl) + `&timestamp=${new Date().getTime()}`;
+    // 显示消息
+    function showMessage(message, type = 'info') {
+        const messageContainer = document.getElementById('messageContainer');
+        messageContainer.innerHTML = `<div class="message ${type}">${message}</div>`;
+        // 自动隐藏消息
+        setTimeout(() => {
+            messageContainer.innerHTML = '';
+        }, 5000);
+    }
+
+    // 带有超时功能的 fetch
+    function fetchWithTimeout(url, options = {}, timeout = 5000) {
+        return new Promise((resolve, reject) => {
+            const timer = setTimeout(() => {
+                reject(new Error('请求超时'));
+            }, timeout);
+
+            fetch(url, options)
+                .then(response => {
+                    clearTimeout(timer);
+                    resolve(response);
+                })
+                .catch(err => {
+                    clearTimeout(timer);
+                    reject(err);
+                });
+        });
+    }
+
+    // 从多个 URL 尝试获取数据，带有重试逻辑
+    async function fetchDataFromUrlsWithRetries(urls, retriesPerUrl, retryInterval, timeout) {
+        for (let i = 0; i < urls.length; i++) {
+            const url = urls[i];
+            const apiName = i === 0 ? '主' : '备用';
+            for (let attempt = 1; attempt <= retriesPerUrl; attempt++) {
+                try {
+                    const response = await fetchWithTimeout(url, {}, timeout);
+                    if (!response.ok) throw new Error('网络响应不正常');
+                    const data = await response.json();
+                    return data;
+                } catch (error) {
+                    showMessage(`从${apiName} API 获取数据失败，重试 ${attempt}/${retriesPerUrl} 次...`, 'error');
+                    if (attempt < retriesPerUrl) {
+                        await new Promise(resolve => setTimeout(resolve, retryInterval));
+                    }
+                }
+            }
+        }
+        throw new Error('所有 API 尝试均失败');
+    }
+
+    // 获取用户数据
+    async function fetchUserData() {
+        const urls = [
+            corsProxy + encodeURIComponent(mainApiUrl) + `&timestamp=${new Date().getTime()}`,
+            corsProxy + encodeURIComponent(backupApiUrl) + `&timestamp=${new Date().getTime()}`
+        ];
         try {
-            const response = await fetch(noCacheUrl);
-            if (!response.ok) {
-                throw new Error('网络响应不正常');
-            }
-            const data = await response.json();
-            const parser = new DOMParser();
-            const htmlDoc = parser.parseFromString(data.contents, 'text/html');
-            displayData(htmlDoc.body.textContent);
+            const data = await fetchDataFromUrlsWithRetries(urls, 10, 10000, 5000);
+            displayData(JSON.parse(data.contents));
         } catch (error) {
-            if (!useBackup) {
-                console.error('主 API 请求失败，尝试使用备用 API...');
-                fetchRemoteHtml(true); // 如果主 API 失败，调用备用 API
-            } else {
-                document.getElementById('dataContainer').innerHTML = `<p class="content">获取数据时出错: ${error.message}</p>`;
-            }
+            showMessage('获取用户数据失败，请稍后再试。', 'error');
+        }
+    }
+
+    // 获取订阅信息
+    async function fetchSubscriptionInfo() {
+        const urls = [
+            corsProxy + encodeURIComponent(mainSubscriptionUrl) + `&timestamp=${new Date().getTime()}`,
+            corsProxy + encodeURIComponent(backupSubscriptionUrl) + `&timestamp=${new Date().getTime()}`
+        ];
+        try {
+            const data = await fetchDataFromUrlsWithRetries(urls, 10, 10000, 5000);
+            const decodedContent = atob(data.contents); // Base64 解码
+            finalBase64 = generateFinalBase64(decodedContent);
+        } catch (error) {
+            showMessage('获取订阅信息失败，请稍后再试。', 'error');
         }
     }
 
     // 显示用户数据
-    function displayData(jsonText) {
-        const data = JSON.parse(jsonText);
+    function displayData(data) {
         const dataContainer = document.getElementById('dataContainer');
         const percent = data.percentNumber;
 
@@ -149,27 +277,14 @@
         const progressBar = document.getElementById('trafficProgressBar');
         progressBar.style.width = percent + '%';
         progressBar.textContent = percent + '%';
-    }
 
-    // 获取订阅信息，尝试备用 API 如果主 API 失败
-    async function fetchSubscriptionInfo(useBackup = false) {
-        const subscriptionUrl = useBackup ? backupSubscriptionUrl : mainSubscriptionUrl;
-        const noCacheUrl = corsProxy + encodeURIComponent(subscriptionUrl) + `&timestamp=${new Date().getTime()}`;
-        try {
-            const response = await fetch(noCacheUrl);
-            if (!response.ok) {
-                throw new Error('无法获取订阅信息');
-            }
-            const data = await response.json();
-            const decodedContent = atob(data.contents); // Base64 解码
-            finalBase64 = generateFinalBase64(decodedContent);
-        } catch (error) {
-            if (!useBackup) {
-                console.error('主 API 订阅信息获取失败，尝试使用备用 API...');
-                fetchSubscriptionInfo(true); // 如果主 API 失败，调用备用 API
-            } else {
-                alert('获取订阅信息失败：' + error.message);
-            }
+        // 根据使用百分比改变进度条颜色
+        if (percent > 80) {
+            progressBar.style.background = 'red';
+        } else if (percent > 50) {
+            progressBar.style.background = 'orange';
+        } else {
+            progressBar.style.background = 'green';
         }
     }
 
@@ -197,25 +312,25 @@
     document.getElementById('copySubscriptionBtn').addEventListener('click', function() {
         if (finalBase64) {
             navigator.clipboard.writeText(finalBase64).then(() => {
-                alert('订阅内容已复制到剪贴板');
+                showMessage('订阅内容已复制到剪贴板', 'success');
             }).catch(err => {
-                console.error('复制失败: ', err);
+                showMessage('复制失败，请重试', 'error');
             });
         } else {
-            alert('订阅内容尚未加载，请稍后再试');
+            showMessage('订阅内容尚未加载，请稍后再试', 'error');
         }
     });
 
-    // 刷新网页
+    // 刷新数据
     document.getElementById('refreshDataBtn').addEventListener('click', function() {
-        location.reload(); // 刷新页面
+        fetchUserData();
+        fetchSubscriptionInfo();
     });
 
     // 页面加载时调用
-    fetchRemoteHtml();
+    fetchUserData();
     fetchSubscriptionInfo();
 </script>
-
 
 </body>
 </html>
