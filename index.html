@@ -62,11 +62,17 @@
             margin: 20px auto;
             padding: 10px;
             text-align: center;
-            position: relative; /* 使关闭按钮定位相对于容器 */
+            position: fixed; /* 固定在页面顶部 */
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000; /* 确保提示框在最前面 */
         }
 
         .message {
-            display: inline-block;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
             padding: 10px 20px;
             border-radius: 50px;
             margin-bottom: 10px;
@@ -76,7 +82,7 @@
             opacity: 0;
             animation: fadeInUp var(--animation-duration) var(--animation-ease) forwards;
             will-change: transform, opacity;
-            transition: opacity 0.5s; /* 添加这行 */
+            transition: opacity 0.5s ease, transform 0.5s ease;
             position: relative;
         }
 
@@ -99,14 +105,17 @@
 
         /* 关闭按钮样式 */
         .message .close-btn {
-            position: absolute;
-            top: 5px;
-            right: 10px;
             background: transparent;
             border: none;
             color: var(--text-color);
             font-size: 1.2rem;
             cursor: pointer;
+            margin-left: 15px;
+            transition: color 0.3s;
+        }
+
+        .message .close-btn:hover {
+            color: #ccc;
         }
 
         .container {
@@ -169,86 +178,296 @@
             border-radius: 50px;
             cursor: pointer;
             font-size: 1rem;
-            transition: background 0.3s, box-shadow 0.3s;
+            transition: background 0.3s, box-shadow 0.3s, transform 0.2s;
+            display: inline-block;
+            text-align: center;
+            margin-top: 20px;
+            text-decoration: none;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            margin-right: 10px;
+            opacity: 0;
+            animation: fadeInUp var(--animation-duration) var(--animation-ease) forwards 0.8s;
+            position: relative;
+            overflow: hidden;
+            will-change: transform, opacity;
+        }
+
+        .btn::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: rgba(255,255,255,0.2);
+            transform: skewX(-45deg);
+            transition: left 0.5s var(--animation-ease);
+            will-change: left;
+        }
+
+        .btn:hover::after {
+            left: 100%;
         }
 
         .btn:hover {
             background: var(--secondary-color);
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+            transform: translateY(-3px);
+        }
+
+        .btn:active {
+            transform: scale(0.97);
+            transition: transform 0.1s var(--animation-ease);
+        }
+
+        .button-group {
+            text-align: center;
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 600px) {
+            h1 {
+                font-size: 2.5rem;
+            }
+            .content {
+                font-size: 1rem;
+            }
+            .btn {
+                font-size: 0.9rem;
+                padding: 12px 30px;
+            }
+            .progress-bar {
+                height: 25px;
+            }
+            .progress-bar-inner {
+                line-height: 25px;
+            }
         }
     </style>
 </head>
 <body>
-    <h1>公益免费订阅</h1>
-    <div class="message-container">
-        <div class="message info" id="infoMessage">
-            <button class="close-btn" onclick="closeMessage('infoMessage')">&times;</button>
-            这是一个信息提示框！
-        </div>
-        <div class="message error" id="errorMessage">
-            <button class="close-btn" onclick="closeMessage('errorMessage')">&times;</button>
-            这是一个错误提示框！
-        </div>
-        <div class="message success" id="successMessage">
-            <button class="close-btn" onclick="closeMessage('successMessage')">&times;</button>
-            这是一个成功提示框！
-        </div>
-    </div>
-    <div class="container">
-        <div class="content">
-            <!-- 内容 -->
-            欢迎订阅我们的公益项目！
-        </div>
-        <div class="progress-container">
-            <div class="progress-bar">
-                <div class="progress-bar-inner" id="progressBar">0%</div>
-            </div>
-        </div>
-        <button class="btn" onclick="startProgress()">开始进度</button>
+
+<h1>公益免费订阅</h1>
+
+<div class="message-container" id="messageContainer"></div>
+
+<div class="container">
+    <div class="content" id="dataContainer">
+        <p>正在加载用户参数，请稍候...</p>
     </div>
 
-    <!-- JavaScript 部分 -->
-    <script>
-        // 函数用于关闭提示框
-        function closeMessage(id) {
-            const message = document.getElementById(id);
-            if (message) {
-                message.style.opacity = '0';
-                setTimeout(() => {
-                    message.style.display = 'none';
-                }, 500); // 与CSS transition时间相匹配
+    <div class="progress-container">
+        <div class="progress-bar">
+            <div class="progress-bar-inner" id="trafficProgressBar">0%</div>
+        </div>
+    </div>
+
+    <div class="button-group">
+        <button class="btn" id="copySubscriptionBtn">复制订阅内容</button>
+        <button class="btn" id="refreshDataBtn">刷新数据</button>
+    </div>
+</div>
+
+<script>
+    const uuid = '88888888-8888-8888-8888-888888888888';
+    const mainDomain = 'https://getfreenodes.com';
+    const backupDomain = 'https://getafreenode.com';
+
+    const mainApiUrl = `${mainDomain}/main/web_api.php?act=getuserinfo&uuid=${uuid}`;
+    const backupApiUrl = `${backupDomain}/main/web_api.php?act=getuserinfo&uuid=${uuid}`;
+    const mainSubscriptionUrl = `${mainDomain}/subscribe/?uuid=${uuid}`;
+    const backupSubscriptionUrl = `${backupDomain}/subscribe/?uuid=${uuid}`;
+
+    const corsProxy = 'https://api.allorigins.win/get?url=';
+    let finalBase64 = ''; // 用于保存生成的 Base64 订阅内容
+
+    // 显示消息
+    function showMessage(message, type = 'info') {
+        const messageContainer = document.getElementById('messageContainer');
+        const messageElement = document.createElement('div');
+        messageElement.className = `message ${type}`;
+        messageElement.innerHTML = `
+            <span>${message}</span>
+            <button class="close-btn">&times;</button>
+        `;
+        messageContainer.appendChild(messageElement);
+
+        // 关闭按钮事件
+        const closeBtn = messageElement.querySelector('.close-btn');
+        closeBtn.addEventListener('click', () => {
+            closeMessage(messageElement);
+        });
+
+        // 自动隐藏消息
+        setTimeout(() => {
+            closeMessage(messageElement);
+        }, 3000); // 3秒后自动关闭
+    }
+
+    // 关闭消息
+    function closeMessage(messageElement) {
+        if (messageElement) {
+            messageElement.style.opacity = '0';
+            messageElement.style.transform = 'translateY(-20px)';
+            messageElement.addEventListener('transitionend', () => {
+                if (messageElement.parentNode) {
+                    messageElement.parentNode.removeChild(messageElement);
+                }
+            });
+        }
+    }
+
+    // 带有超时功能的 fetch
+    function fetchWithTimeout(url, options = {}, timeout = 5000) {
+        return new Promise((resolve, reject) => {
+            const timer = setTimeout(() => {
+                reject(new Error('请求超时'));
+            }, timeout);
+
+            fetch(url, { ...options, cache: 'no-store' }) // 添加 cache: 'no-store'
+                .then(response => {
+                    clearTimeout(timer);
+                    resolve(response);
+                })
+                .catch(err => {
+                    clearTimeout(timer);
+                    reject(err);
+                });
+        });
+    }
+
+    // 从多个 URL 尝试获取数据，带有重试逻辑
+    async function fetchDataFromUrlsWithRetries(urls, retriesPerUrl, retryInterval, timeout) {
+        for (let i = 0; i < urls.length; i++) {
+            const url = urls[i];
+            const apiName = i === 0 ? '主' : '备用';
+            for (let attempt = 1; attempt <= retriesPerUrl; attempt++) {
+                try {
+                    const response = await fetchWithTimeout(url, {}, timeout);
+                    if (!response.ok) throw new Error('网络响应不正常');
+                    const data = await response.json();
+                    return data;
+                } catch (error) {
+                    showMessage(`从${apiName} API 获取数据失败，重试 ${attempt}/${retriesPerUrl} 次...`, 'error');
+                    if (attempt < retriesPerUrl) {
+                        await new Promise(resolve => setTimeout(resolve, retryInterval));
+                    }
+                }
             }
         }
+        throw new Error('所有 API 尝试均失败');
+    }
 
-        // 自动关闭提示框（例如3秒后自动关闭）
-        function autoCloseMessage(id, delay = 3000) {
-            setTimeout(() => {
-                closeMessage(id);
-            }, delay);
+    // 获取用户数据
+    async function fetchUserData() {
+        const urls = [
+            corsProxy + encodeURIComponent(mainApiUrl) + `&timestamp=${new Date().getTime()}`,
+            corsProxy + encodeURIComponent(backupApiUrl) + `&timestamp=${new Date().getTime()}`
+        ];
+        try {
+            const data = await fetchDataFromUrlsWithRetries(urls, 10, 10000, 5000);
+            displayData(JSON.parse(data.contents));
+        } catch (error) {
+            showMessage('获取用户数据失败，请稍后再试。', 'error');
         }
+    }
 
-        // 调用自动关闭函数
-        window.onload = function() {
-            autoCloseMessage('infoMessage');
-            autoCloseMessage('errorMessage');
-            autoCloseMessage('successMessage');
-        };
-
-        // 进度条动画示例
-        function startProgress() {
-            const progressBar = document.getElementById('progressBar');
-            let width = 0;
-            const interval = setInterval(() => {
-                if (width >= 100) {
-                    clearInterval(interval);
-                    progressBar.innerText = '完成';
-                } else {
-                    width += 10;
-                    progressBar.style.width = width + '%';
-                    progressBar.innerText = width + '%';
-                }
-            }, 500);
+    // 获取订阅信息
+    async function fetchSubscriptionInfo() {
+        const urls = [
+            corsProxy + encodeURIComponent(mainSubscriptionUrl) + `&timestamp=${new Date().getTime()}`,
+            corsProxy + encodeURIComponent(backupSubscriptionUrl) + `&timestamp=${new Date().getTime()}`
+        ];
+        try {
+            const data = await fetchDataFromUrlsWithRetries(urls, 10, 10000, 5000);
+            const decodedContent = atob(data.contents); // Base64 解码
+            finalBase64 = generateFinalBase64(decodedContent);
+        } catch (error) {
+            showMessage('获取订阅信息失败，请稍后再试。', 'error');
         }
-    </script>
+    }
+
+    // 显示用户数据
+    function displayData(data) {
+        const dataContainer = document.getElementById('dataContainer');
+        const percent = data.percentNumber;
+
+        dataContainer.innerHTML = `
+            <div class="content"><strong>订阅最后使用时间：</strong> ${new Date(data.lastUseTime * 1000).toLocaleString()}</div>
+            <div class="content"><strong>订阅速度最大限制：</strong> ${data.speedlimit} Mbps</div>
+            <div class="content"><strong>当前订阅剩余流量：</strong> ${data.remainingTraffic}</div>
+            <div class="content"><strong>已用流量的百分比：</strong> ${percent}%</div>
+            <div class="content"><strong>已自动重置的次数：</strong> ${data.resetTimes}</div>
+        `;
+
+        // 重新触发内容的动画
+        const contents = dataContainer.querySelectorAll('.content');
+        contents.forEach((content, index) => {
+            content.style.opacity = '0';
+            content.style.animation = `fadeIn var(--animation-duration) var(--animation-ease) forwards ${0.2 + index * 0.1}s`;
+        });
+
+        // 更新进度条
+        const progressBar = document.getElementById('trafficProgressBar');
+        setTimeout(() => {
+            progressBar.style.width = percent + '%';
+            progressBar.textContent = percent + '%';
+            // 根据使用百分比改变进度条颜色
+            if (percent > 80) {
+                progressBar.style.background = 'red';
+            } else if (percent > 50) {
+                progressBar.style.background = 'orange';
+            } else {
+                progressBar.style.background = 'green';
+            }
+        }, 800);
+    }
+
+    // 生成最终 Base64 编码
+    function generateFinalBase64(decodedContent) {
+        const lines = decodedContent.split('\n').map(line => {
+            if (line.startsWith('vmess://')) {
+                const vmessDecoded = atob(line.slice(8)); // 去掉 'vmess://' 并解码 Base64
+                const vmessReplaced = replaceKeywords(vmessDecoded); // 替换广告内容
+                return 'vmess://' + btoa(vmessReplaced); // 重新编码为 Base64 并加上 'vmess://'
+            } else {
+                return replaceKeywords(line); // 对其他类型的链接进行广告替换
+            }
+        }).join('\n');
+        return btoa(lines); // 将处理后的内容重新编码为 Base64
+    }
+
+    // 替换广告关键词
+    function replaceKeywords(text) {
+        return text.replace(/-GetAFreeNode\.com/g, '-getfreenode.pages.dev/')
+                   .replace(/-GetAFreeNode/g, '-getfreenode.pages.dev/');
+    }
+
+    // 复制订阅内容
+    document.getElementById('copySubscriptionBtn').addEventListener('click', function() {
+        if (finalBase64) {
+            navigator.clipboard.writeText(finalBase64).then(() => {
+                showMessage('订阅内容已复制到剪贴板', 'success');
+            }).catch(err => {
+                showMessage('复制失败，请重试', 'error');
+            });
+        } else {
+            showMessage('订阅内容尚未加载，请稍后再试', 'error');
+        }
+    });
+
+    // 刷新数据
+    document.getElementById('refreshDataBtn').addEventListener('click', function() {
+        fetchUserData();
+        fetchSubscriptionInfo();
+    });
+
+    // 页面加载时调用
+    window.onload = function() {
+        fetchUserData();
+        fetchSubscriptionInfo();
+    };
+</script>
+
 </body>
 </html>
