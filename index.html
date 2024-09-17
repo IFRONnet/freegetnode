@@ -8,7 +8,7 @@
     <!-- 引入更具现代感的字体 -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <!-- 引入 Poppins 字体 -->
+    <!-- 引入 Poppins 字体并优化字体加载 -->
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
     <!-- 引入动画库 -->
     <style>
@@ -336,11 +336,12 @@
         if (messageElement) {
             messageElement.style.opacity = '0';
             messageElement.style.transform = 'translateY(-20px)';
-            messageElement.addEventListener('transitionend', () => {
+            // 使用 setTimeout 确保动画完成后移除元素
+            setTimeout(() => {
                 if (messageElement.parentNode) {
                     messageElement.parentNode.removeChild(messageElement);
                 }
-            });
+            }, 500); // 与CSS中的transition时间一致
         }
     }
 
