@@ -323,7 +323,7 @@
              * @param {number} retries - 每个 URL 的重试次数
              * @param {number} interval - 重试间隔时间（毫秒）
              * @param {number} timeout - 单次请求的超时时间（毫秒）
-             * @returns {Promise<object>} - 获取到的数据
+             * @returns {Promise<string>} - 获取到的 data.contents
              */
             const fetchDataWithRetries = async (urls, retries = 10, interval = 10000, timeout = 5000) => {
                 for (const [index, url] of urls.entries()) {
@@ -334,8 +334,10 @@
                             const response = await fetchWithTimeout(fullUrl, {}, timeout);
                             if (!response.ok) throw new Error('网络响应不正常');
                             const data = await response.json();
-                            return JSON.parse(data.contents);
+                            if (!data.contents) throw new Error('响应中缺少 contents');
+                            return data.contents; // 成功后立即返回 contents
                         } catch (error) {
+                            console.error(`从${apiName} API 获取数据失败，尝试 ${attempt}/${retries} 次...`, error);
                             showMessage(`从${apiName} API 获取数据失败，重试 ${attempt}/${retries} 次...`, 'error');
                             if (attempt < retries) {
                                 await new Promise(res => setTimeout(res, interval));
@@ -352,9 +354,18 @@
             const fetchUserData = async () => {
                 const urls = [apiEndpoints.userInfo.main, apiEndpoints.userInfo.backup];
                 try {
-                    const data = await fetchDataWithRetries(urls);
+                    const contents = await fetchDataWithRetries(urls);
+                    let data;
+                    try {
+                        data = JSON.parse(contents);
+                    } catch (parseError) {
+                        console.error('解析用户数据时出错:', parseError);
+                        showMessage('解析用户数据时出错，请稍后再试。', 'error');
+                        return;
+                    }
                     displayUserData(data);
-                } catch {
+                } catch (error) {
+                    console.error('获取用户数据失败:', error);
                     showMessage('获取用户数据失败，请稍后再试。', 'error');
                 }
             };
@@ -365,10 +376,18 @@
             const fetchSubscriptionInfo = async () => {
                 const urls = [apiEndpoints.subscription.main, apiEndpoints.subscription.backup];
                 try {
-                    const data = await fetchDataWithRetries(urls);
-                    const decodedContent = atob(data.contents);
+                    const contents = await fetchDataWithRetries(urls);
+                    let decodedContent;
+                    try {
+                        decodedContent = atob(contents);
+                    } catch (decodeError) {
+                        console.error('Base64 解码订阅信息时出错:', decodeError);
+                        showMessage('解码订阅信息时出错，请稍后再试。', 'error');
+                        return;
+                    }
                     finalBase64 = generateFinalBase64(decodedContent);
-                } catch {
+                } catch (error) {
+                    console.error('获取订阅信息失败:', error);
                     showMessage('获取订阅信息失败，请稍后再试。', 'error');
                 }
             };
@@ -412,8 +431,13 @@
             const generateFinalBase64 = (decoded) => {
                 const replaced = decoded.split('\n').map(line => {
                     if (line.startsWith('vmess://')) {
-                        const vmessData = atob(line.slice(8));
-                        return 'vmess://' + btoa(replaceKeywords(vmessData));
+                        try {
+                            const vmessData = atob(line.slice(8));
+                            return 'vmess://' + btoa(replaceKeywords(vmessData));
+                        } catch (error) {
+                            console.error('处理 vmess 链接时出错:', error);
+                            return line; // 如果出错，返回原始行
+                        }
                     }
                     return replaceKeywords(line);
                 }).join('\n');
@@ -436,7 +460,10 @@
                 if (finalBase64) {
                     navigator.clipboard.writeText(finalBase64)
                         .then(() => showMessage('订阅内容已复制到剪贴板', 'success'))
-                        .catch(() => showMessage('复制失败，请重试', 'error'));
+                        .catch((err) => {
+                            console.error('复制失败:', err);
+                            showMessage('复制失败，请重试', 'error');
+                        });
                 } else {
                     showMessage('订阅内容尚未加载，请稍后再试', 'error');
                 }
