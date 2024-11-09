@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>公益免费订阅</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #00b4db;
+            --secondary-color: #0083b0;
+            --background-gradient: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            --text-color: #ffffff;
+            --accent-color: #f5af19;
+            --error-color: #ff4d4d;
+            --success-color: #4dff4d;
+            --info-color: #00e6ff;
+            --animation-duration: 0.8s;
+            --animation-ease: cubic-bezier(0.4, 0.0, 0.2, 1);
+        }
+
+        *, *::before, *::after {
+            box-sizing: border-box;
+        }
+
+        /* 其余样式保持不变，此处省略 */
+    </style>
+</head>
+<body>
+
+    <h1>公益免费订阅</h1>
+
+    <div class="message-container" id="messageContainer"></div>
+
+    <div class="container">
+        <div class="content" id="dataContainer">
+            <p>正在加载用户参数，请稍候...</p>
+        </div>
+
+        <div class="progress-container">
+            <div class="progress-bar">
+                <div class="progress-bar-inner" id="trafficProgressBar">0%</div>
+            </div>
+        </div>
+
+        <div class="button-group">
+            <button class="btn" id="copySubscriptionBtn">复制订阅内容</button>
+            <button class="btn" id="refreshDataBtn">刷新数据</button>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            const uuid = '88888888-8888-8888-8888-888888888888';
+            const mainDomain = 'https://getfreenodes.com';
+            const backupDomain = 'https://getafreenode.com';
+            const corsProxy = 'https://api.allorigins.win/get?url=';
+
+            const apiEndpoints = {
+                userInfo: {
+                    main: `${mainDomain}/main/web_api.php?act=getuserinfo&uuid=${uuid}`,
+                    backup: `${backupDomain}/main/web_api.php?act=getuserinfo&uuid=${uuid}`
+                },
+                subscription: {
+                    main: `${mainDomain}/subscribe/?uuid=${uuid}`,
+                    backup: `${backupDomain}/subscribe/?uuid=${uuid}`
+                }
+            };
+
+            let finalBase64 = '';
+
+            const showMessage = (message, type = 'info') => {
+                const messageContainer = document.getElementById('messageContainer');
+                const messageElement = document.createElement('div');
+                messageElement.className = `message ${type}`;
+                messageElement.innerHTML = `
+                    <span>${message}</span>
+                    <button class="close-btn" aria-label="关闭消息">&times;</button>
+                `;
+                messageContainer.appendChild(messageElement);
+
+                const closeBtn = messageElement.querySelector('.close-btn');
+                closeBtn.addEventListener('click', () => closeMessage(messageElement));
+
+                setTimeout(() => closeMessage(messageElement), 3000);
+            };
+
+            const closeMessage = (element) => {
+                if (element) {
+                    element.style.opacity = '0';
+                    element.style.transform = 'translateY(-20px)';
+                    setTimeout(() => element.remove(), 500);
+                }
+            };
+
+            const fetchWithTimeout = (url, options = {}, timeout = 5000) => {
+                return Promise.race([
+                    fetch(url, { ...options, cache: 'no-store' }),
+                    new Promise((_, reject) => setTimeout(() => reject(new Error('请求超时')), timeout))
+                ]);
+            };
+
+            const fetchDataWithRetries = async (urls, retries = 10, interval = 10000, timeout = 5000) => {
+                for (const [index, url] of urls.entries()) {
+                    const apiName = index === 0 ? '主' : '备用';
+                    for (let attempt = 1; attempt <= retries; attempt++) {
+                        try {
+                            const fullUrl = `${corsProxy}${encodeURIComponent(url)}&timestamp=${Date.now()}`;
+                            const response = await fetchWithTimeout(fullUrl, {}, timeout);
+                            
+                            if (!response.ok) {
+                                const errorText = await response.text();
+                                throw new Error(`网络响应不正常：状态码 ${response.status}，错误信息：${errorText}`);
+                            }
+                            
+                            const data = await response.json();
+                            
+                            if (!data.contents) {
+                                throw new Error(`响应中缺少 contents，完整响应：${JSON.stringify(data)}`);
+                            }
+                            
+                            return data.contents;
+                        } catch (error) {
+                            const errorMessage = error.message || '未知错误';
+                            console.error(`从${apiName} API 获取数据失败，尝试 ${attempt}/${retries} 次：${errorMessage}`, error);
+                            
+                            showMessage(`从${apiName} API 获取数据失败，重试 ${attempt}/${retries} 次：${errorMessage}`, 'error');
+                            
+                            if (attempt < retries) {
+                                await new Promise(res => setTimeout(res, interval));
+                            }
+                        }
+                    }
+                }
+                throw new Error('所有 API 尝试均失败');
+            };
+
+            const fetchUserData = async () => {
+                const urls = [apiEndpoints.userInfo.main, apiEndpoints.userInfo.backup];
+                try {
+                    const contents = await fetchDataWithRetries(urls);
+                    let data;
+                    try {
+                        data = JSON.parse(contents);
+                    } catch (parseError) {
+                        const errorDetails = {
+                            message: parseError.message,
+                            contents: contents
+                        };
+                        console.error('解析用户数据时出错:', errorDetails);
+                        showMessage(`解析用户数据时出错：${parseError.message}。请检查数据格式。`, 'error');
+                        return;
+                    }
+
+                    if (!data || typeof data !== 'object') {
+                        showMessage('获取的用户数据无效，请稍后再试。', 'error');
+                        return;
+                    }
+
+                    displayUserData(data);
+                } catch (error) {
+                    console.error('获取用户数据失败:', error);
+                    showMessage(`获取用户数据失败：${error.message}。请检查网络连接。`, 'error');
+                }
+            };
+
+            const fetchSubscriptionInfo = async () => {
+                const urls = [apiEndpoints.subscription.main, apiEndpoints.subscription.backup];
+                try {
+                    const contents = await fetchDataWithRetries(urls);
+                    let decodedContent;
+                    try {
+                        decodedContent = atob(contents);
+                    } catch (decodeError) {
+                        console.error('Base64 解码订阅信息时出错:', {
+                            message: decodeError.message,
+                            contents: contents
+                        });
+                        showMessage(`解码订阅信息时出错：${decodeError.message}。请检查订阅内容。`, 'error');
+                        return;
+                    }
+
+                    if (!decodedContent) {
+                        showMessage('订阅内容为空，请稍后再试。', 'error');
+                        return;
+                    }
+
+                    finalBase64 = generateFinalBase64(decodedContent);
+                } catch (error) {
+                    console.error('获取订阅信息失败:', error);
+                    showMessage(`获取订阅信息失败：${error.message}。请检查网络连接。`, 'error');
+                }
+            };
+
+            const displayUserData = (data) => {
+                const dataContainer = document.getElementById('dataContainer');
+                const percent = data.percentNumber;
+
+                dataContainer.innerHTML = `
+                    <div class="content"><strong>订阅最后使用时间：</strong> ${new Date(data.lastUseTime * 1000).toLocaleString()}</div>
+                    <div class="content"><strong>订阅速度最大限制：</strong> ${data.speedlimit} Mbps</div>
+                    <div class="content"><strong>当前订阅剩余流量：</strong> ${data.remainingTraffic}</div>
+                    <div class="content"><strong>已用流量的百分比：</strong> ${percent}%</div>
+                    <div class="content"><strong>已自动重置的次数：</strong> ${data.resetTimes}</div>
+                `;
+
+                dataContainer.querySelectorAll('.content').forEach((el, idx) => {
+                    el.style.opacity = '0';
+                    el.style.animation = `fadeIn 0.8s var(--animation-ease) forwards ${0.2 + idx * 0.1}s`;
+                });
+
+                const progressBar = document.getElementById('trafficProgressBar');
+                setTimeout(() => {
+                    progressBar.style.width = `${percent}%`;
+                    progressBar.textContent = `${percent}%`;
+                    progressBar.style.background = percent > 80 ? 'red' : percent > 50 ? 'orange' : 'green';
+                }, 800);
+            };
+
+            const generateFinalBase64 = (decoded) => {
+                const replaced = decoded.split('\n').map(line => {
+                    if (line.startsWith('vmess://')) {
+                        try {
+                            const vmessData = atob(line.slice(8));
+                            return 'vmess://' + btoa(replaceKeywords(vmessData));
+                        } catch (error) {
+                            console.error('处理 vmess 链接时出错:', error);
+                            return line;
+                        }
+                    }
+                    return replaceKeywords(line);
+                }).join('\n');
+                return btoa(replaced);
+            };
+
+            const replaceKeywords = (text) => text
+                .replace(/-GetAFreeNode\.com/g, '-getfreenode.pages.dev/')
+                .replace(/-GetAFreeNode/g, '-getfreenode.pages.dev/');
+
+            const copySubscription = () => {
+                if (finalBase64) {
+                    navigator.clipboard.writeText(finalBase64)
+                        .then(() => showMessage('订阅内容已复制到剪贴板', 'success'))
+                        .catch((err) => {
+                            console.error('复制失败:', err);
+                            showMessage('复制失败，请重试', 'error');
+                        });
+                } else {
+                    showMessage('订阅内容尚未加载，请稍后再试', 'error');
+                }
+            };
+
+            const refreshData = () => {
+                fetchUserData();
+                fetchSubscriptionInfo();
+            };
+
+            const init = () => {
+                document.getElementById('copySubscriptionBtn').addEventListener('click', copySubscription);
+                document.getElementById('refreshDataBtn').addEventListener('click', refreshData);
+                fetchUserData();
+                fetchSubscriptionInfo();
+            };
+
+            window.addEventListener('DOMContentLoaded', init);
+        })();
+    </script>
+
+</body>
+</html> 
