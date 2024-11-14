@@ -287,7 +287,8 @@
                 corsProxy: 'https://api.allorigins.win/get?url=',
                 retryAttempts: 10,
                 retryInterval: 10000,
-                timeout: 5000
+                timeout: 10000, // 增加超时时间到10秒
+                testResourcePath: '/guide/v2rayN.webp' // 指定测速资源路径
             };
 
             const cache = new Map();
@@ -308,7 +309,7 @@
                         });
                         const endTime = performance.now();
                         const duration = Math.round(endTime - startTime);
-                        if (!response.ok) throw new Error('Network response was not ok');
+                        if (!response.ok) throw new Error('网络响应不正常');
                         return { response, duration };
                     } finally {
                         clearTimeout(timeoutId);
@@ -340,10 +341,14 @@
                 },
 
                 async speedTest(url) {
-                    const testUrl = `${CONFIG.corsProxy}${encodeURIComponent(url)}`;
+                    const testUrl = url + CONFIG.testResourcePath;
                     try {
-                        const { duration } = await this.fetch(testUrl);
-                        return duration;
+                        const startTime = performance.now();
+                        const response = await fetch(testUrl, { cache: 'no-store' });
+                        if (!response.ok) throw new Error('网络响应不正常');
+                        await response.blob(); // 下载资源
+                        const endTime = performance.now();
+                        return Math.round(endTime - startTime);
                     } catch (error) {
                         console.error(`测速失败: ${url}`, error);
                         return Infinity; // 表示测速失败
@@ -436,8 +441,8 @@
                     const speedTestContainer = document.getElementById('speedTestContainer');
                     speedTestContainer.style.display = 'flex';
 
-                    const foreignURL = `${CONFIG.backupDomain}/ping`; // 假设有一个ping接口
-                    const domesticURL = `${CONFIG.mainDomain}/ping`;   // 假设有一个ping接口
+                    const foreignURL = CONFIG.backupDomain; // 使用配置中的备份域名
+                    const domesticURL = CONFIG.mainDomain; // 使用配置中的主域名
 
                     // 并行测速
                     const [foreignSpeed, domesticSpeed] = await Promise.all([
@@ -445,12 +450,15 @@
                         api.speedTest(domesticURL)
                     ]);
 
-                    document.getElementById('foreignSpeed').textContent = foreignSpeed === Infinity ? '测速失败' : foreignSpeed;
-                    document.getElementById('domesticSpeed').textContent = domesticSpeed === Infinity ? '测速失败' : domesticSpeed;
+                    document.getElementById('foreignSpeed').textContent = foreignSpeed === Infinity ? '测速失败' : `${foreignSpeed} ms`;
+                    document.getElementById('domesticSpeed').textContent = domesticSpeed === Infinity ? '测速失败' : `${domesticSpeed} ms`;
 
-                    // 根据测速结果自动选择最快的API，如果两者都失败，则显示错误消息
+                    // 提示用户选择API
                     if (foreignSpeed === Infinity && domesticSpeed === Infinity) {
                         ui.showMessage('测速失败，请检查网络连接或稍后重试。', 'error');
+                    } else {
+                        // 显示选择按钮
+                        speedTestContainer.style.display = 'flex';
                     }
                 },
 
