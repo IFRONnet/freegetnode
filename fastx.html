@@ -306,10 +306,11 @@
                 <span class="material-icons">refresh</span>
                 刷新数据
             </button>
-            <button class="btn" id="switchApiBtn">
+            <!-- 删除切换API按钮 -->
+            <!-- <button class="btn" id="switchApiBtn">
                 <span class="material-icons">swap_horiz</span>
                 切换API
-            </button>
+            </button> -->
         </div>
     </div>
 
@@ -320,7 +321,7 @@
                 mainDomain: 'https://getfreenodes.com',
                 backupDomain: 'https://getafreenode.com',
                 corsProxy: 'https://api.allorigins.win/get?url=', // CORS代理
-                retryAttempts: 10,
+                retryAttempts: 1, // 不再自动重试
                 retryInterval: 10000,
                 timeout: 10000, // 10秒超时
                 testEndpoint: '/main/web_api.php?act=getuserinfo&uuid=88888888-8888-8888-8888-888888888888' // 使用轻量级API进行测速
@@ -331,6 +332,9 @@
             let selectedDomain = localStorage.getItem('selectedDomain') || null;
             let autoSelectTimerInterval = null;
             let autoSelectTimeout = null;
+            let requestCount = 0; // 记录请求次数
+            const MAX_REQUESTS = 5; // 每30秒最多请求5次
+            const REQUEST_WINDOW = 30000; // 30秒
 
             const api = {
                 async fetch(url, options = {}, timeout = CONFIG.timeout) {
@@ -358,22 +362,25 @@
                         const cacheKey = `${url}_${Date.now()}`;
                         if (cache.has(cacheKey)) return cache.get(cacheKey);
 
-                        for (let attempt = 1; attempt <= CONFIG.retryAttempts; attempt++) {
-                            try {
-                                // 使用CORS代理
-                                const proxiedUrl = `${CONFIG.corsProxy}${encodeURIComponent(url)}`;
-                                const { response, duration } = await this.fetch(proxiedUrl);
-                                const data = await response.json();
-                                const result = await processor(data.contents, duration);
-                                cache.set(cacheKey, result);
-                                return result;
-                            } catch (error) {
-                                console.error(`API attempt ${attempt}/${CONFIG.retryAttempts} failed:`, error);
-                                ui.showMessage(`API 请求失败，重试中 (${attempt}/${CONFIG.retryAttempts})`, 'error');
-                                if (attempt < CONFIG.retryAttempts) {
-                                    await new Promise(r => setTimeout(r, CONFIG.retryInterval));
-                                }
-                            }
+                        // 检查请求次数是否超过限制
+                        if (requestCount >= MAX_REQUESTS) {
+                            ui.showMessage('请求次数过多，请稍后再试。', 'error');
+                            throw new Error('请求次数过多');
+                        }
+
+                        try {
+                            // 使用CORS代理
+                            const proxiedUrl = `${CONFIG.corsProxy}${encodeURIComponent(url)}`;
+                            const { response, duration } = await this.fetch(proxiedUrl);
+                            const data = await response.json();
+                            const result = await processor(data.contents, duration);
+                            cache.set(cacheKey, result);
+                            requestCount++;
+                            return result;
+                        } catch (error) {
+                            console.error(`API 请求失败:`, error);
+                            ui.showMessage(`API 请求失败，请手动选择。`, 'error');
+                            throw error; // 不再自动重试
                         }
                     }
                     throw new Error('所有 API 尝试均失败');
@@ -475,6 +482,11 @@
                         // 如果已经选择了API，直接刷新数据
                         await this.refreshData();
                     }
+
+                    // 设置请求计数器重置
+                    setInterval(() => {
+                        requestCount = 0;
+                    }, REQUEST_WINDOW);
                 },
 
                 bindEvents() {
@@ -483,7 +495,8 @@
                     document.getElementById('selectForeignBtn').onclick = () => this.selectDomain(CONFIG.backupDomain);
                     document.getElementById('selectDomesticBtn').onclick = () => this.selectDomain(CONFIG.mainDomain);
                     document.getElementById('resetSelectionBtn').onclick = () => this.resetSelection();
-                    document.getElementById('switchApiBtn').onclick = () => this.switchApi();
+                    // 删除切换API按钮绑定
+                    // document.getElementById('switchApiBtn').onclick = () => this.switchApi();
                 },
 
                 async performSpeedTest() {
@@ -502,6 +515,7 @@
 
                     ui.showLoader(false);
 
+                    // 修复“ms ms”问题：只添加一个“ms”
                     document.getElementById('foreignSpeed').textContent = foreignSpeed === Infinity ? '测速失败' : `${foreignSpeed} ms`;
                     document.getElementById('domesticSpeed').textContent = domesticSpeed === Infinity ? '测速失败' : `${domesticSpeed} ms`;
 
@@ -574,17 +588,13 @@
                 },
 
                 async fetchUserData() {
-                    const urls = [
-                        `${CONFIG.mainDomain}${CONFIG.testEndpoint}`,
-                        `${CONFIG.backupDomain}${CONFIG.testEndpoint}`
-                    ];
-
                     const selectedUrl = selectedDomain === CONFIG.mainDomain ? CONFIG.mainDomain : CONFIG.backupDomain;
                     const apiUrl = `${selectedUrl}${CONFIG.testEndpoint}`;
 
                     const data = await api.fetchWithRetry([apiUrl], (contents, duration) => {
                         const parsed = JSON.parse(contents);
                         ui.updateUserData(parsed);
+                        // 一旦获取到一次数据，停止所有API请求
                         return parsed;
                     });
 
@@ -651,9 +661,10 @@
                     this.performSpeedTest();
                 },
 
-                switchApi() {
-                    this.resetSelection();
-                }
+                // 删除switchApi方法及按钮绑定
+                // switchApi() {
+                //     this.resetSelection();
+                // }
             };
 
             window.addEventListener('DOMContentLoaded', () => app.init());
