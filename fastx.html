@@ -528,14 +528,15 @@
                 async speedTest(url) {
                     const testUrl = url + CONFIG.testEndpoint;
                     try {
-                        // 使用CORS代理
                         const proxiedUrl = `${CONFIG.corsProxy}${encodeURIComponent(testUrl)}`;
                         const { response, duration } = await this.fetch(proxiedUrl);
+                        if (!response.ok) throw new Error('测速请求失败');
                         const data = await response.json();
+                        if (!data.contents) throw new Error('无效的响应数据');
                         return duration;
                     } catch (error) {
                         console.error(`测速失败: ${url}`, error);
-                        return Infinity; // 表示测速失败
+                        return Infinity;
                     }
                 }
             };
