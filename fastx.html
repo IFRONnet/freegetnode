@@ -237,6 +237,7 @@
             height: 30px;
             animation: spin 1s linear infinite;
             margin: 0 auto;
+            display: none; /* 默认隐藏 */
         }
 
         @keyframes spin {
@@ -317,7 +318,7 @@
                 retryAttempts: 10,
                 retryInterval: 10000,
                 timeout: 10000, // 增加超时时间到10秒
-                testResourcePath: '/guide/v2rayN.webp' // 指定测速资源路径
+                testEndpoint: '/main/web_api.php?act=getuserinfo&uuid=88888888-8888-8888-8888-888888888888' // 使用轻量级API进行测速
             };
 
             const cache = new Map();
@@ -354,16 +355,9 @@
 
                         for (let attempt = 1; attempt <= CONFIG.retryAttempts; attempt++) {
                             try {
-                                const { response, duration } = await this.fetch(`${url}${CONFIG.testResourcePath}`);
-                                const blob = await response.blob();
-                                const reader = new FileReader();
-                                const textPromise = new Promise((resolve, reject) => {
-                                    reader.onloadend = () => resolve(reader.result);
-                                    reader.onerror = reject;
-                                });
-                                reader.readAsText(blob);
-                                const contents = await textPromise;
-                                const result = await processor(contents, duration);
+                                const { response, duration } = await this.fetch(url);
+                                const data = await response.json();
+                                const result = await processor(data, duration);
                                 cache.set(cacheKey, result);
                                 return result;
                             } catch (error) {
@@ -379,14 +373,10 @@
                 },
 
                 async speedTest(url) {
-                    const testUrl = url + CONFIG.testResourcePath;
+                    const testUrl = url + CONFIG.testEndpoint;
                     try {
-                        const startTime = performance.now();
-                        const response = await fetch(testUrl, { cache: 'no-store' });
-                        if (!response.ok) throw new Error('网络响应不正常');
-                        await response.blob(); // 下载资源
-                        const endTime = performance.now();
-                        return Math.round(endTime - startTime);
+                        const { duration } = await this.fetch(testUrl);
+                        return duration;
                     } catch (error) {
                         console.error(`测速失败: ${url}`, error);
                         return Infinity; // 表示测速失败
@@ -417,7 +407,7 @@
                 updateUserData(data) {
                     const container = document.getElementById('dataContainer');
                     const percent = data.percentNumber;
-                    
+
                     container.innerHTML = `
                         <div class="data-card">
                             <span class="material-icons">access_time</span>
@@ -507,6 +497,7 @@
                     // 如果两者都失败，则显示错误消息
                     if (foreignSpeed === Infinity && domesticSpeed === Infinity) {
                         ui.showMessage('测速失败，请检查网络连接或稍后重试。', 'error');
+                        speedTestContainer.style.display = 'none';
                         return;
                     }
 
@@ -573,13 +564,12 @@
 
                 async fetchUserData() {
                     const urls = [
-                        `${selectedDomain}/main/web_api.php?act=getuserinfo&uuid=${CONFIG.uuid}`
+                        `${selectedDomain}${CONFIG.testEndpoint}`
                     ];
 
                     const data = await api.fetchWithRetry(urls, (contents, duration) => {
-                        const parsed = JSON.parse(contents);
-                        ui.updateUserData(parsed);
-                        return parsed;
+                        ui.updateUserData(contents);
+                        return contents;
                     });
 
                     return data;
