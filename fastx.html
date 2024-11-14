@@ -69,6 +69,7 @@
             transform: translateY(20px);
             opacity: 0;
             animation: slideUp 0.8s var(--animation-ease) forwards;
+            position: relative;
         }
 
         .data-card {
@@ -305,6 +306,10 @@
                 <span class="material-icons">refresh</span>
                 刷新数据
             </button>
+            <button class="btn" id="switchApiBtn">
+                <span class="material-icons">swap_horiz</span>
+                切换API
+            </button>
         </div>
     </div>
 
@@ -314,10 +319,9 @@
                 uuid: '88888888-8888-8888-8888-888888888888',
                 mainDomain: 'https://getfreenodes.com',
                 backupDomain: 'https://getafreenode.com',
-                corsProxy: 'https://api.allorigins.win/get?url=',
                 retryAttempts: 10,
                 retryInterval: 10000,
-                timeout: 10000, // 增加超时时间到10秒
+                timeout: 10000, // 10秒超时
                 testEndpoint: '/main/web_api.php?act=getuserinfo&uuid=88888888-8888-8888-8888-888888888888' // 使用轻量级API进行测速
             };
 
@@ -473,6 +477,7 @@
                     document.getElementById('selectForeignBtn').onclick = () => this.selectDomain(CONFIG.backupDomain);
                     document.getElementById('selectDomesticBtn').onclick = () => this.selectDomain(CONFIG.mainDomain);
                     document.getElementById('resetSelectionBtn').onclick = () => this.resetSelection();
+                    document.getElementById('switchApiBtn').onclick = () => this.switchApi();
                 },
 
                 async performSpeedTest() {
@@ -633,6 +638,10 @@
                     ui.showMessage('API选择已重置，正在重新测速...', 'info');
                     document.getElementById('dataContainer').innerHTML = '';
                     this.performSpeedTest();
+                },
+
+                switchApi() {
+                    this.resetSelection();
                 }
             };
 
