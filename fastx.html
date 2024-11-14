@@ -319,6 +319,7 @@
                 uuid: '88888888-8888-8888-8888-888888888888',
                 mainDomain: 'https://getfreenodes.com',
                 backupDomain: 'https://getafreenode.com',
+                corsProxy: 'https://api.allorigins.win/get?url=', // CORS代理
                 retryAttempts: 10,
                 retryInterval: 10000,
                 timeout: 10000, // 10秒超时
@@ -359,9 +360,11 @@
 
                         for (let attempt = 1; attempt <= CONFIG.retryAttempts; attempt++) {
                             try {
-                                const { response, duration } = await this.fetch(url);
+                                // 使用CORS代理
+                                const proxiedUrl = `${CONFIG.corsProxy}${encodeURIComponent(url)}`;
+                                const { response, duration } = await this.fetch(proxiedUrl);
                                 const data = await response.json();
-                                const result = await processor(data, duration);
+                                const result = await processor(data.contents, duration);
                                 cache.set(cacheKey, result);
                                 return result;
                             } catch (error) {
@@ -379,7 +382,10 @@
                 async speedTest(url) {
                     const testUrl = url + CONFIG.testEndpoint;
                     try {
-                        const { duration } = await this.fetch(testUrl);
+                        // 使用CORS代理
+                        const proxiedUrl = `${CONFIG.corsProxy}${encodeURIComponent(testUrl)}`;
+                        const { response, duration } = await this.fetch(proxiedUrl);
+                        const data = await response.json();
                         return duration;
                     } catch (error) {
                         console.error(`测速失败: ${url}`, error);
@@ -569,23 +575,28 @@
 
                 async fetchUserData() {
                     const urls = [
-                        `${selectedDomain}${CONFIG.testEndpoint}`
+                        `${CONFIG.mainDomain}${CONFIG.testEndpoint}`,
+                        `${CONFIG.backupDomain}${CONFIG.testEndpoint}`
                     ];
 
-                    const data = await api.fetchWithRetry(urls, (contents, duration) => {
-                        ui.updateUserData(contents);
-                        return contents;
+                    const selectedUrl = selectedDomain === CONFIG.mainDomain ? CONFIG.mainDomain : CONFIG.backupDomain;
+                    const apiUrl = `${selectedUrl}${CONFIG.testEndpoint}`;
+
+                    const data = await api.fetchWithRetry([apiUrl], (contents, duration) => {
+                        const parsed = JSON.parse(contents);
+                        ui.updateUserData(parsed);
+                        return parsed;
                     });
 
                     return data;
                 },
 
                 async fetchSubscription() {
-                    const urls = [
-                        `${selectedDomain}/subscribe/?uuid=${CONFIG.uuid}`
-                    ];
+                    const selectedUrl = selectedDomain === CONFIG.mainDomain ? CONFIG.mainDomain : CONFIG.backupDomain;
+                    const subscriptionUrl = `${selectedUrl}/subscribe/?uuid=${CONFIG.uuid}`;
 
-                    const data = await api.fetchWithRetry(urls, (contents, duration) => {
+                    const data = await api.fetchWithRetry([subscriptionUrl], (contents, duration) => {
+                        // 由于使用CORS代理，contents需要从JSON中提取
                         const decoded = atob(contents);
                         finalBase64 = btoa(this.processSubscription(decoded));
                         return finalBase64;
