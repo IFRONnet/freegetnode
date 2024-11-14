@@ -418,8 +418,7 @@
                 corsProxy: 'https://api.allorigins.win/get?url=',
                 retryAttempts: 10,
                 retryInterval: 10000,
-                timeout: 5000,
-                testEndpoint: '/main/web_api.php?act=getuserinfo&uuid=88888888-8888-8888-888888888888'
+                timeout: 5000
             };
 
             const cache = new Map();
@@ -446,20 +445,6 @@
                         return response;
                     } finally {
                         clearTimeout(timeoutId);
-                    }
-                },
-
-                async speedTest(url) {
-                    const testUrl = url + '/main/web_api.php?act=getuserinfo&uuid=' + CONFIG.uuid;
-                    try {
-                        const startTime = performance.now();
-                        const fullUrl = `${CONFIG.corsProxy}${encodeURIComponent(testUrl)}&timestamp=${Date.now()}`;
-                        await this.fetch(fullUrl);
-                        const endTime = performance.now();
-                        return Math.round(endTime - startTime);
-                    } catch (error) {
-                        console.error(`测速失败: ${url}`, error);
-                        return Infinity;
                     }
                 },
 
