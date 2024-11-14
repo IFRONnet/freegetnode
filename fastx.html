@@ -464,15 +464,6 @@
                 <span class="material-icons">content_copy</span>
                 复制订阅内容
             </button>
-            <button class="btn" id="refreshDataBtn">
-                <span class="material-icons">refresh</span>
-                刷新数据
-            </button>
-            <!-- 删除切换API按钮 -->
-            <!-- <button class="btn" id="switchApiBtn">
-                <span class="material-icons">swap_horiz</span>
-                切换API
-            </button> -->
         </div>
     </div>
 
@@ -650,12 +641,9 @@
 
                 bindEvents() {
                     document.getElementById('copySubscriptionBtn').onclick = this.copySubscription.bind(this);
-                    document.getElementById('refreshDataBtn').onclick = () => this.refreshData();
                     document.getElementById('selectForeignBtn').onclick = () => this.selectDomain(CONFIG.backupDomain);
                     document.getElementById('selectDomesticBtn').onclick = () => this.selectDomain(CONFIG.mainDomain);
                     document.getElementById('resetSelectionBtn').onclick = () => this.resetSelection();
-                    // 删除切换API按钮绑定
-                    // document.getElementById('switchApiBtn').onclick = () => this.switchApi();
                 },
 
                 async performSpeedTest() {
@@ -685,9 +673,9 @@
                         ui.showLoader(false);
 
                         document.getElementById('foreignSpeed').textContent = 
-                            foreignSpeed === Infinity ? '测速失败' : `${foreignSpeed} ms`;
+                            foreignSpeed === Infinity ? '测速失败' : foreignSpeed;
                         document.getElementById('domesticSpeed').textContent = 
-                            domesticSpeed === Infinity ? '测速失败' : `${domesticSpeed} ms`;
+                            domesticSpeed === Infinity ? '测速失败' : domesticSpeed;
 
                         if (foreignSpeed === Infinity && domesticSpeed === Infinity) {
                             ui.showMessage('测速失败，请手动选择API或重试。', 'error');
@@ -763,25 +751,34 @@
                         autoSelectTimeout = null;
                     }
 
-                    // 添加一个重新选择的按钮到数据容器上方
-                    const container = document.querySelector('.container');
+                    // 修改按钮组的布局
+                    const buttonGroup = document.querySelector('.button-group');
                     let switchBtn = document.getElementById('switchApiBtn');
+                    
+                    // 移除旧的刷新按钮
+                    const refreshBtn = document.getElementById('refreshDataBtn');
+                    if (refreshBtn) {
+                        refreshBtn.remove();
+                    }
+                    
                     if (!switchBtn) {
                         switchBtn = document.createElement('button');
                         switchBtn.id = 'switchApiBtn';
                         switchBtn.className = 'btn';
+                        switchBtn.style.background = 'var(--accent-color)'; // 使用强调色
                         switchBtn.innerHTML = `
                             <span class="material-icons">swap_horiz</span>
                             重新选择API
                         `;
                         switchBtn.onclick = () => {
-                            // 显示选择界面
                             speedTestContainer.style.display = 'flex';
                             speedTestContainer.style.transform = '';
                             speedTestContainer.style.opacity = '';
                             this.performSpeedTest();
                         };
-                        container.insertBefore(switchBtn, container.firstChild);
+                        
+                        // 将新按钮添加到按钮组中
+                        buttonGroup.appendChild(switchBtn);
                     }
 
                     setTimeout(() => {
@@ -916,12 +913,7 @@
                     setTimeout(() => {
                         this.performSpeedTest();
                     }, 500);
-                },
-
-                // 删除switchApi方法及按钮绑定
-                // switchApi() {
-                //     this.resetSelection();
-                // }
+                }
             };
 
             window.addEventListener('DOMContentLoaded', () => app.init());
