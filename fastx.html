@@ -257,6 +257,55 @@
             .data-card .material-icons { margin: 0 auto; }
             .speed-result div { font-size: 0.9rem; }
         }
+
+        .announcement {
+            width: min(100%, 800px);
+            background: var(--card-bg);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            border: 1px solid var(--card-border);
+            padding: clamp(1rem, 3vw, 2rem);
+            margin-bottom: 2rem;
+            animation: slideUp 0.8s var(--animation-ease) forwards;
+        }
+
+        .announcement h2 {
+            color: var(--accent-color);
+            margin-bottom: 1rem;
+        }
+
+        .announcement h3 {
+            color: var(--primary-color);
+            margin: 1rem 0;
+        }
+
+        .announcement p {
+            margin-bottom: 1rem;
+            line-height: 1.6;
+        }
+
+        .announcement .highlight {
+            color: var(--accent-color);
+            font-weight: 500;
+        }
+
+        .announcement ul {
+            list-style-type: none;
+            padding-left: 0;
+        }
+
+        .announcement li {
+            margin-bottom: 0.5rem;
+            padding-left: 1.5rem;
+            position: relative;
+        }
+
+        .announcement li:before {
+            content: "•";
+            color: var(--accent-color);
+            position: absolute;
+            left: 0;
+        }
     </style>
 </head>
 <body>
@@ -358,32 +407,29 @@
                 },
 
                 async fetchWithRetry(urls, processor) {
-                    for (const [index, url] of urls.entries()) {
+                    if (requestCount >= MAX_REQUESTS) {
+                        ui.showMessage('请求次数过多，请稍后再试。', 'error');
+                        throw new Error('请求次数过多');
+                    }
+
+                    try {
+                        const url = urls[0]; // 只使用第一个URL，不再重试
                         const cacheKey = `${url}_${Date.now()}`;
                         if (cache.has(cacheKey)) return cache.get(cacheKey);
 
-                        // 检查请求次数是否超过限制
-                        if (requestCount >= MAX_REQUESTS) {
-                            ui.showMessage('请求次数过多，请稍后再试。', 'error');
-                            throw new Error('请求次数过多');
-                        }
-
-                        try {
-                            // 使用CORS代理
-                            const proxiedUrl = `${CONFIG.corsProxy}${encodeURIComponent(url)}`;
-                            const { response, duration } = await this.fetch(proxiedUrl);
-                            const data = await response.json();
-                            const result = await processor(data.contents, duration);
-                            cache.set(cacheKey, result);
-                            requestCount++;
-                            return result;
-                        } catch (error) {
-                            console.error(`API 请求失败:`, error);
-                            ui.showMessage(`API 请求失败，请手动选择。`, 'error');
-                            throw error; // 不再自动重试
-                        }
+                        const proxiedUrl = `${CONFIG.corsProxy}${encodeURIComponent(url)}`;
+                        const { response, duration } = await this.fetch(proxiedUrl);
+                        const data = await response.json();
+                        const result = await processor(data.contents, duration);
+                        cache.set(cacheKey, result);
+                        requestCount++;
+                        return result;
+                    } catch (error) {
+                        console.error(`API 请求失败:`, error);
+                        ui.showMessage('API 请求失败，请重新选择API。', 'error');
+                        app.resetSelection(); // 重置选择，让用户重新选择API
+                        throw error;
                     }
-                    throw new Error('所有 API 尝试均失败');
                 },
 
                 async speedTest(url) {
@@ -558,18 +604,30 @@
                 selectDomain(domain) {
                     selectedDomain = domain;
                     localStorage.setItem('selectedDomain', domain);
-                    ui.showMessage(`已选择 ${domain === CONFIG.backupDomain ? '国外' : '国内'} API`, 'success');
                     
-                    // 隐藏测速和选择区域
-                    document.getElementById('speedTestContainer').style.display = 'none';
-                    document.getElementById('autoSelectTimer').style.display = 'none';
+                    // 添加动画效果
+                    const speedTestContainer = document.getElementById('speedTestContainer');
+                    speedTestContainer.style.transform = 'translateY(100%)';
+                    speedTestContainer.style.opacity = '0';
+                    speedTestContainer.style.transition = 'all 0.5s ease';
+                    
+                    setTimeout(() => {
+                        speedTestContainer.style.display = 'none';
+                        document.getElementById('autoSelectTimer').style.display = 'none';
+                    }, 500);
 
                     // 清除定时器
                     clearInterval(autoSelectTimerInterval);
                     clearTimeout(autoSelectTimeout);
 
-                    // 刷新数据
-                    this.refreshData();
+                    ui.showMessage(`已选择 ${domain === CONFIG.backupDomain ? '国外' : '国内'} API`, 'success');
+                    
+                    // 只请求一次数据
+                    this.refreshData().catch(error => {
+                        console.error('初始数据加载失败:', error);
+                        ui.showMessage('数据加载失败，请重新选择API', 'error');
+                        this.resetSelection();
+                    });
                 },
 
                 async refreshData() {
