@@ -437,16 +437,13 @@
                     const timeoutId = setTimeout(() => controller.abort(), timeout);
                     
                     try {
-                        const startTime = performance.now();
                         const response = await fetch(url, {
                             ...options,
                             signal: controller.signal,
                             cache: 'no-store'
                         });
-                        const endTime = performance.now();
-                        const duration = Math.round(endTime - startTime);
-                        if (!response.ok) throw new Error('网络响应不正常');
-                        return { response, duration };
+                        if (!response.ok) throw new Error('Network response was not ok');
+                        return response;
                     } finally {
                         clearTimeout(timeoutId);
                     }
@@ -455,9 +452,11 @@
                 async speedTest(url) {
                     const testUrl = url + '/main/web_api.php?act=getuserinfo&uuid=' + CONFIG.uuid;
                     try {
+                        const startTime = performance.now();
                         const fullUrl = `${CONFIG.corsProxy}${encodeURIComponent(testUrl)}&timestamp=${Date.now()}`;
-                        const { duration } = await this.fetch(fullUrl);
-                        return duration;
+                        await this.fetch(fullUrl);
+                        const endTime = performance.now();
+                        return Math.round(endTime - startTime);
                     } catch (error) {
                         console.error(`测速失败: ${url}`, error);
                         return Infinity;
@@ -472,7 +471,7 @@
                         for (let attempt = 1; attempt <= CONFIG.retryAttempts; attempt++) {
                             try {
                                 const fullUrl = `${CONFIG.corsProxy}${encodeURIComponent(url)}&timestamp=${Date.now()}`;
-                                const { response } = await this.fetch(fullUrl);
+                                const response = await this.fetch(fullUrl);
                                 const data = await response.json();
                                 const result = await processor(data.contents);
                                 cache.set(cacheKey, result);
