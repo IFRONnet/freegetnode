@@ -245,11 +245,6 @@
             to { transform: rotate(360deg); }
         }
 
-        /* 新增：重置按钮样式 */
-        .reset-btn {
-            background: var(--error-color);
-        }
-
         @media (max-width: 600px) {
             .button-group { flex-direction: column; }
             .btn { width: 100%; }
@@ -404,7 +399,7 @@
             
             <div class="stats-box">
                 <span class="material-icons">groups</span>
-                <p class="highlight">目前，<span class="user-count">10,000+</span> 位用户使用Get Free Node提供的免费节点安全快捷地畅游互联网！</p>
+                <p class="highlight">目前，<span class="user-count">10,000+</span> 位用户使用Get Free Node提供的免费节点安全快地畅游互联网！</p>
             </div>
         </div>
 
@@ -447,10 +442,6 @@
                 <span class="material-icons">check_circle</span>
                 选择全球🌏（备用）API
             </button>
-            <button class="btn reset-btn" id="resetSelectionBtn">
-                <span class="material-icons">refresh</span>
-                重置选择
-            </button>
         </div>
         <div id="autoSelectTimer" style="text-align: center; margin-top: 1rem; color: var(--text-color);">
             自动选择将在 <span id="timer">10</span> 秒后进行
@@ -473,11 +464,9 @@
                 uuid: '88888888-8888-8888-8888-888888888888',
                 mainDomain: 'https://getfreenodes.com',
                 backupDomain: 'https://getafreenode.com',
-                corsProxy: 'https://api.allorigins.win/get?url=', // CORS代理
-                retryAttempts: 1, // 不再自动重试
-                retryInterval: 10000,
-                timeout: 10000, // 10秒超时
-                testEndpoint: '/main/web_api.php?act=getuserinfo&uuid=88888888-8888-8888-8888-888888888888' // 使用轻量级API进行测速
+                corsProxy: 'https://api.allorigins.win/get?url=',
+                timeout: 10000,
+                testEndpoint: '/main/web_api.php?act=getuserinfo&uuid=88888888-8888-8888-888888888888'
             };
 
             const cache = new Map();
@@ -643,7 +632,6 @@
                     document.getElementById('copySubscriptionBtn').onclick = this.copySubscription.bind(this);
                     document.getElementById('selectForeignBtn').onclick = () => this.selectDomain(CONFIG.backupDomain);
                     document.getElementById('selectDomesticBtn').onclick = () => this.selectDomain(CONFIG.mainDomain);
-                    document.getElementById('resetSelectionBtn').onclick = () => this.resetSelection();
                 },
 
                 async performSpeedTest() {
@@ -735,7 +723,7 @@
                     selectedDomain = domain;
                     localStorage.setItem('selectedDomain', domain);
                     
-                    // 添加动画效果
+                    // 添加动效果
                     const speedTestContainer = document.getElementById('speedTestContainer');
                     speedTestContainer.style.transform = 'translateY(100%)';
                     speedTestContainer.style.opacity = '0';
