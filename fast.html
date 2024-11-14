@@ -22,6 +22,7 @@
             --animation-ease: cubic-bezier(0.4, 0.0, 0.2, 1);
             --card-bg: rgba(255, 255, 255, 0.08);
             --card-border: rgba(255, 255, 255, 0.1);
+            --spinner-color: var(--primary-color);
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -227,6 +228,26 @@
             background: var(--accent-color);
         }
 
+        /* 新增：加载指示器 */
+        .loader {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid var(--spinner-color);
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* 新增：重置按钮样式 */
+        .reset-btn {
+            background: var(--error-color);
+        }
+
         @media (max-width: 600px) {
             .button-group { flex-direction: column; }
             .btn { width: 100%; }
@@ -252,6 +273,7 @@
                 <div>国内API速度: <span id="domesticSpeed">--</span> ms</div>
             </div>
         </div>
+        <div class="loader" id="speedTestLoader"></div> <!-- 加载指示器 -->
         <div class="selection-group">
             <button class="btn" id="selectForeignBtn">
                 <span class="material-icons">check_circle</span>
@@ -261,6 +283,13 @@
                 <span class="material-icons">check_circle</span>
                 选择国内API
             </button>
+            <button class="btn reset-btn" id="resetSelectionBtn">
+                <span class="material-icons">refresh</span>
+                重置选择
+            </button>
+        </div>
+        <div id="autoSelectTimer" style="text-align: center; margin-top: 1rem; color: var(--text-color);">
+            自动选择将在 <span id="timer">10</span> 秒后进行
         </div>
     </div>
 
@@ -294,6 +323,8 @@
             const cache = new Map();
             let finalBase64 = '';
             let selectedDomain = localStorage.getItem('selectedDomain') || null;
+            let autoSelectTimerInterval = null;
+            let autoSelectTimeout = null;
 
             const api = {
                 async fetch(url, options = {}, timeout = CONFIG.timeout) {
@@ -323,9 +354,16 @@
 
                         for (let attempt = 1; attempt <= CONFIG.retryAttempts; attempt++) {
                             try {
-                                const { response, duration } = await this.fetch(`${CONFIG.corsProxy}${encodeURIComponent(url)}&timestamp=${Date.now()}`);
-                                const data = await response.json();
-                                const result = await processor(data.contents, duration);
+                                const { response, duration } = await this.fetch(`${url}${CONFIG.testResourcePath}`);
+                                const blob = await response.blob();
+                                const reader = new FileReader();
+                                const textPromise = new Promise((resolve, reject) => {
+                                    reader.onloadend = () => resolve(reader.result);
+                                    reader.onerror = reject;
+                                });
+                                reader.readAsText(blob);
+                                const contents = await textPromise;
+                                const result = await processor(contents, duration);
                                 cache.set(cacheKey, result);
                                 return result;
                             } catch (error) {
@@ -415,6 +453,15 @@
                             </div>
                         </div>
                     `;
+                },
+
+                showLoader(show) {
+                    const loader = document.getElementById('speedTestLoader');
+                    if (show) {
+                        loader.style.display = 'block';
+                    } else {
+                        loader.style.display = 'none';
+                    }
                 }
             };
 
@@ -431,15 +478,17 @@
                 },
 
                 bindEvents() {
-                    document.getElementById('copySubscriptionBtn').onclick = this.copySubscription;
+                    document.getElementById('copySubscriptionBtn').onclick = this.copySubscription.bind(this);
                     document.getElementById('refreshDataBtn').onclick = () => this.refreshData();
                     document.getElementById('selectForeignBtn').onclick = () => this.selectDomain(CONFIG.backupDomain);
                     document.getElementById('selectDomesticBtn').onclick = () => this.selectDomain(CONFIG.mainDomain);
+                    document.getElementById('resetSelectionBtn').onclick = () => this.resetSelection();
                 },
 
                 async performSpeedTest() {
                     const speedTestContainer = document.getElementById('speedTestContainer');
                     speedTestContainer.style.display = 'flex';
+                    ui.showLoader(true);
 
                     const foreignURL = CONFIG.backupDomain; // 使用配置中的备份域名
                     const domesticURL = CONFIG.mainDomain; // 使用配置中的主域名
@@ -450,16 +499,44 @@
                         api.speedTest(domesticURL)
                     ]);
 
+                    ui.showLoader(false);
+
                     document.getElementById('foreignSpeed').textContent = foreignSpeed === Infinity ? '测速失败' : `${foreignSpeed} ms`;
                     document.getElementById('domesticSpeed').textContent = domesticSpeed === Infinity ? '测速失败' : `${domesticSpeed} ms`;
 
-                    // 提示用户选择API
+                    // 如果两者都失败，则显示错误消息
                     if (foreignSpeed === Infinity && domesticSpeed === Infinity) {
                         ui.showMessage('测速失败，请检查网络连接或稍后重试。', 'error');
-                    } else {
-                        // 显示选择按钮
-                        speedTestContainer.style.display = 'flex';
+                        return;
                     }
+
+                    // 启动自动选择计时器
+                    this.startAutoSelectTimer(foreignSpeed, domesticSpeed);
+                },
+
+                startAutoSelectTimer(foreignSpeed, domesticSpeed) {
+                    let timeLeft = 10;
+                    const timerElement = document.getElementById('timer');
+                    timerElement.textContent = timeLeft;
+
+                    autoSelectTimerInterval = setInterval(() => {
+                        timeLeft--;
+                        timerElement.textContent = timeLeft;
+                        if (timeLeft <= 0) {
+                            clearInterval(autoSelectTimerInterval);
+                            clearTimeout(autoSelectTimeout);
+                            // 自动选择最快的API
+                            const fastestDomain = foreignSpeed < domesticSpeed ? CONFIG.backupDomain : CONFIG.mainDomain;
+                            this.selectDomain(fastestDomain);
+                        }
+                    }, 1000);
+
+                    // 设置超时，以防clearInterval未触发
+                    autoSelectTimeout = setTimeout(() => {
+                        clearInterval(autoSelectTimerInterval);
+                        const fastestDomain = foreignSpeed < domesticSpeed ? CONFIG.backupDomain : CONFIG.mainDomain;
+                        this.selectDomain(fastestDomain);
+                    }, 10000);
                 },
 
                 selectDomain(domain) {
@@ -469,20 +546,28 @@
                     
                     // 隐藏测速和选择区域
                     document.getElementById('speedTestContainer').style.display = 'none';
+                    document.getElementById('autoSelectTimer').style.display = 'none';
+
+                    // 清除定时器
+                    clearInterval(autoSelectTimerInterval);
+                    clearTimeout(autoSelectTimeout);
 
                     // 刷新数据
                     this.refreshData();
                 },
 
                 async refreshData() {
+                    ui.showLoader(true);
                     try {
                         await Promise.all([
                             this.fetchUserData(),
                             this.fetchSubscription()
                         ]);
+                        ui.showLoader(false);
                     } catch (error) {
                         console.error('数据刷新失败:', error);
                         ui.showMessage('数据刷新失败，请稍后重试', 'error');
+                        ui.showLoader(false);
                     }
                 },
 
@@ -549,6 +634,15 @@
                         console.error('复制失败:', error);
                         ui.showMessage('复制失败，请重试', 'error');
                     }
+                },
+
+                resetSelection() {
+                    localStorage.removeItem('selectedDomain');
+                    selectedDomain = null;
+                    finalBase64 = '';
+                    ui.showMessage('API选择已重置，正在重新测速...', 'info');
+                    document.getElementById('dataContainer').innerHTML = '';
+                    this.performSpeedTest();
                 }
             };
 
