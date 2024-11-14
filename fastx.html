@@ -430,22 +430,22 @@
         <div class="speed-result">
             <div>
                 <span class="material-icons">public</span>
-                <div>国外API速度: <span id="foreignSpeed">--</span> ms</div>
+                <div>全球🌏API速度: <span id="foreignSpeed">--</span> ms</div>
             </div>
             <div>
                 <span class="material-icons">public</span>
-                <div>国内API速度: <span id="domesticSpeed">--</span> ms</div>
+                <div>全球🌏（备用）API速度: <span id="domesticSpeed">--</span> ms</div>
             </div>
         </div>
         <div class="loader" id="speedTestLoader"></div> <!-- 加载指示器 -->
         <div class="selection-group">
             <button class="btn" id="selectForeignBtn">
                 <span class="material-icons">check_circle</span>
-                选择国外API
+                选择全球🌏API
             </button>
             <button class="btn" id="selectDomesticBtn">
                 <span class="material-icons">check_circle</span>
-                选择国内API
+                选择全球🌏（备用）API
             </button>
             <button class="btn reset-btn" id="resetSelectionBtn">
                 <span class="material-icons">refresh</span>
@@ -690,16 +690,17 @@
                             domesticSpeed === Infinity ? '测速失败' : `${domesticSpeed} ms`;
 
                         if (foreignSpeed === Infinity && domesticSpeed === Infinity) {
-                            ui.showMessage('测速失败，请检查网络连接或稍后重试。', 'error');
-                            speedTestContainer.style.display = 'none';
+                            ui.showMessage('测速失败，请手动选择API或重试。', 'error');
+                            // 不再隐藏选择界面
+                            document.getElementById('autoSelectTimer').style.display = 'none'; // 只隐藏自动选择计时器
                             return;
                         }
 
                         this.startAutoSelectTimer(foreignSpeed, domesticSpeed);
                     } catch (error) {
                         ui.showLoader(false);
-                        ui.showMessage('测速过程出错，请稍后重试。', 'error');
-                        speedTestContainer.style.display = 'none';
+                        ui.showMessage('测速过程出错，请手动选择API或重试。', 'error');
+                        document.getElementById('autoSelectTimer').style.display = 'none'; // 只隐藏自动选择计时器
                     }
                 },
 
@@ -762,16 +763,37 @@
                         autoSelectTimeout = null;
                     }
 
+                    // 添加一个重新选择的按钮到数据容器上方
+                    const container = document.querySelector('.container');
+                    let switchBtn = document.getElementById('switchApiBtn');
+                    if (!switchBtn) {
+                        switchBtn = document.createElement('button');
+                        switchBtn.id = 'switchApiBtn';
+                        switchBtn.className = 'btn';
+                        switchBtn.innerHTML = `
+                            <span class="material-icons">swap_horiz</span>
+                            重新选择API
+                        `;
+                        switchBtn.onclick = () => {
+                            // 显示选择界面
+                            speedTestContainer.style.display = 'flex';
+                            speedTestContainer.style.transform = '';
+                            speedTestContainer.style.opacity = '';
+                            this.performSpeedTest();
+                        };
+                        container.insertBefore(switchBtn, container.firstChild);
+                    }
+
                     setTimeout(() => {
                         speedTestContainer.style.display = 'none';
                         document.getElementById('autoSelectTimer').style.display = 'none';
-                        // 重置样式，为下次显示做准备
+                        // 重置样式,为下次显示做准备
                         speedTestContainer.style.transform = '';
                         speedTestContainer.style.opacity = '';
                         speedTestContainer.style.transition = '';
                     }, 500);
 
-                    ui.showMessage(`已选择 ${domain === CONFIG.backupDomain ? '国外' : '国内'} API`, 'success');
+                    ui.showMessage(`已选择 ${domain === CONFIG.backupDomain ? '全球🌏' : '全球🌏（备用）'} API`, 'success');
                     
                     // 只请求一次数据
                     this.refreshData().catch(error => {
