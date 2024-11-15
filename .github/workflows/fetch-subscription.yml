@@ -58,7 +58,7 @@ jobs:
           }
 
           function createInfoNode(userInfo) {
-              const ps = "GetFreeNode - 剩余流量：" + userInfo.remainingTraffic + 
+              const ps = "getfreenode.pages.dev - 剩余流量：" + userInfo.remainingTraffic + 
                         " - 速度限制：" + userInfo.speedlimit + "Mbps";
               
               // 创建一个空的 vmess 节点
