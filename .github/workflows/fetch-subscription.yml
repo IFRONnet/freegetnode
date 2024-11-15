@@ -40,6 +40,69 @@ jobs:
               userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
           };
 
+          async function getUserInfo(domain) {
+              const url = `${domain}/main/web_api.php?act=getuserinfo&uuid=${CONFIG.uuid}`;
+              try {
+                  const response = await fetch(url);
+                  const data = JSON.parse(response);
+                  return data;
+              } catch (error) {
+                  console.error('Failed to fetch user info:', error);
+                  return null;
+              }
+          }
+
+          function createInfoNode(userInfo) {
+              const ps = "GetFreeNode.com - 剩余流量：" + userInfo.remainingTraffic + 
+                        " - 速度限制：" + userInfo.speedlimit + "Mbps";
+              
+              // 创建一个空的 vmess 节点
+              const vmessConfig = {
+                  v: "2",
+                  ps: ps,
+                  add: "getfreenode.pages.dev",
+                  port: "443",
+                  id: CONFIG.uuid,
+                  aid: "0",
+                  net: "ws",
+                  type: "none",
+                  host: "getfreenode.pages.dev",
+                  path: "/",
+                  tls: "tls",
+                  sni: "getfreenode.pages.dev"
+              };
+
+              return "vmess://" + Buffer.from(JSON.stringify(vmessConfig)).toString('base64');
+          }
+
+          function processSubscription(decoded, userInfo) {
+              // 添加信息节点到开头
+              const lines = decoded.split('\n');
+              if (userInfo) {
+                  lines.unshift(createInfoNode(userInfo));
+              }
+
+              return lines
+                  .map(line => {
+                      if (line.startsWith('vmess://')) {
+                          try {
+                              const vmessData = Buffer.from(line.slice(8), 'base64').toString();
+                              return 'vmess://' + Buffer.from(replaceKeywords(vmessData)).toString('base64');
+                          } catch {
+                              return line;
+                          }
+                      }
+                      return replaceKeywords(line);
+                  })
+                  .join('\n');
+          }
+
+          function replaceKeywords(text) {
+              return text
+                  .replace(/-GetAFreeNode\.com/g, '-getfreenode.pages.dev/')
+                  .replace(/-GetAFreeNode/g, '-getfreenode.pages.dev/');
+          }
+
           function fetch(url) {
               return new Promise((resolve, reject) => {
                   const options = {
@@ -69,6 +132,8 @@ jobs:
                       const url = `${domain}/subscribe/?uuid=${CONFIG.uuid}`;
                       console.log(`Trying to fetch from: ${url}`);
                       
+                      // 获取用户信息
+                      const userInfo = await getUserInfo(domain);
                       const base64Content = await fetch(url);
                       
                       // 验证内容是否为有效的 base64
@@ -77,22 +142,26 @@ jobs:
                           if (!decoded.includes('vmess://') && !decoded.includes('hysteria2://')) {
                               throw new Error('Invalid subscription content');
                           }
+                          
+                          // 处理订阅内容，替换广告网址并添加信息节点
+                          const processedContent = processSubscription(decoded, userInfo);
+                          const finalBase64 = Buffer.from(processedContent).toString('base64');
+                          
+                          // 确保输出目录存在
+                          if (!fs.existsSync(CONFIG.outputDir)) {
+                              fs.mkdirSync(CONFIG.outputDir, { recursive: true });
+                          }
+                          
+                          // 写入处理后的内容
+                          const outputPath = path.join(CONFIG.outputDir, CONFIG.outputFile);
+                          fs.writeFileSync(outputPath, finalBase64);
+                          
+                          console.log('Successfully fetched and saved subscription');
+                          return;
                       } catch (error) {
                           console.error('Invalid base64 content or subscription format');
                           continue;
                       }
-                      
-                      // 确保输出目录存在
-                      if (!fs.existsSync(CONFIG.outputDir)) {
-                          fs.mkdirSync(CONFIG.outputDir, { recursive: true });
-                      }
-                      
-                      // 写入文件
-                      const outputPath = path.join(CONFIG.outputDir, CONFIG.outputFile);
-                      fs.writeFileSync(outputPath, base64Content);
-                      
-                      console.log('Successfully fetched and saved subscription');
-                      return;
                   } catch (error) {
                       console.error(`Failed to fetch from ${domain}:`, error.message);
                   }
