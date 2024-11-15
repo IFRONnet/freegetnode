@@ -36,15 +36,26 @@ jobs:
                   'https://getafreenode.com'
               ],
               outputDir: 'public/subscribe',
-              outputFile: 'subscription.txt'
+              outputFile: 'subscription.txt',
+              userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
           };
 
           function fetch(url) {
               return new Promise((resolve, reject) => {
-                  https.get(url, (res) => {
+                  const options = {
+                      headers: {
+                          'User-Agent': CONFIG.userAgent
+                      }
+                  };
+
+                  https.get(url, options, (res) => {
                       let data = '';
                       res.on('data', (chunk) => data += chunk);
-                      res.on('end', () => resolve(data));
+                      res.on('end', () => {
+                          // 清理 PHP 警告信息，只保留实际的 base64 内容
+                          const cleanedData = data.replace(/<br \/>\n<b>.*?<\/b>.*?<br \/>\n/g, '').trim();
+                          resolve(cleanedData);
+                      });
                   }).on('error', reject)
                   .setTimeout(5000, () => {
                       reject(new Error('Request timeout'));
@@ -59,6 +70,17 @@ jobs:
                       console.log(`Trying to fetch from: ${url}`);
                       
                       const base64Content = await fetch(url);
+                      
+                      // 验证内容是否为有效的 base64
+                      try {
+                          const decoded = Buffer.from(base64Content, 'base64').toString();
+                          if (!decoded.includes('vmess://') && !decoded.includes('hysteria2://')) {
+                              throw new Error('Invalid subscription content');
+                          }
+                      } catch (error) {
+                          console.error('Invalid base64 content or subscription format');
+                          continue;
+                      }
                       
                       // 确保输出目录存在
                       if (!fs.existsSync(CONFIG.outputDir)) {
