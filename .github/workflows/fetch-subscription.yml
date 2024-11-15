@@ -40,20 +40,25 @@ jobs:
               userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
           };
 
-          async function getUserInfo(domain) {
-              const url = `${domain}/main/web_api.php?act=getuserinfo&uuid=${CONFIG.uuid}`;
-              try {
-                  const response = await fetch(url);
-                  const data = JSON.parse(response);
-                  return data;
-              } catch (error) {
-                  console.error('Failed to fetch user info:', error);
-                  return null;
+          async function getUserInfo() {
+              for (const domain of CONFIG.domains) {
+                  try {
+                      const url = `${domain}/main/web_api.php?act=getuserinfo&uuid=${CONFIG.uuid}`;
+                      console.log(`Trying to fetch user info from: ${url}`);
+                      const response = await fetch(url);
+                      const cleanedResponse = response.replace(/<br \/>\n<b>.*?<\/b>.*?<br \/>\n/g, '').trim();
+                      const data = JSON.parse(cleanedResponse);
+                      console.log('Successfully fetched user info');
+                      return data;
+                  } catch (error) {
+                      console.error(`Failed to fetch user info from ${domain}:`, error.message);
+                  }
               }
+              return null;
           }
 
           function createInfoNode(userInfo) {
-              const ps = "GetFreeNode.com - 剩余流量：" + userInfo.remainingTraffic + 
+              const ps = "GetFreeNode - 剩余流量：" + userInfo.remainingTraffic + 
                         " - 速度限制：" + userInfo.speedlimit + "Mbps";
               
               // 创建一个空的 vmess 节点
@@ -77,7 +82,7 @@ jobs:
 
           function processSubscription(decoded, userInfo) {
               // 添加信息节点到开头
-              const lines = decoded.split('\n');
+              const lines = decoded.split('\n').filter(line => line.trim() !== '');
               if (userInfo) {
                   lines.unshift(createInfoNode(userInfo));
               }
@@ -115,7 +120,7 @@ jobs:
                       let data = '';
                       res.on('data', (chunk) => data += chunk);
                       res.on('end', () => {
-                          // 清理 PHP 警告信息，只保留实际的 base64 内容
+                          // 清理 PHP 警告信息，只保留实际内容
                           const cleanedData = data.replace(/<br \/>\n<b>.*?<\/b>.*?<br \/>\n/g, '').trim();
                           resolve(cleanedData);
                       });
@@ -127,13 +132,18 @@ jobs:
           }
 
           async function fetchSubscription() {
+              // 首先获取用户信息
+              const userInfo = await getUserInfo();
+              if (!userInfo) {
+                  console.warn('Failed to fetch user info from all domains');
+              }
+
+              // 然后尝试获取订阅内容
               for (const domain of CONFIG.domains) {
                   try {
                       const url = `${domain}/subscribe/?uuid=${CONFIG.uuid}`;
-                      console.log(`Trying to fetch from: ${url}`);
+                      console.log(`Trying to fetch subscription from: ${url}`);
                       
-                      // 获取用户信息
-                      const userInfo = await getUserInfo(domain);
                       const base64Content = await fetch(url);
                       
                       // 验证内容是否为有效的 base64
@@ -159,7 +169,7 @@ jobs:
                           console.log('Successfully fetched and saved subscription');
                           return;
                       } catch (error) {
-                          console.error('Invalid base64 content or subscription format');
+                          console.error('Invalid base64 content or subscription format:', error.message);
                           continue;
                       }
                   } catch (error) {
