@@ -370,9 +370,9 @@
                 <span class="material-icons">content_copy</span>
                 复制订阅内容
             </button>
-            <button class="btn" id="refreshDataBtn">
+            <button class="btn" id="triggerUpdateBtn">
                 <span class="material-icons">refresh</span>
-                刷新数据
+                立即更新订阅
             </button>
         </div>
     </div>
@@ -387,7 +387,13 @@
                 retryAttempts: 10,
                 retryInterval: 10000,
                 timeout: 5000,
-                localSubscriptionPath: '/subscribe/subscription.txt'
+                localSubscriptionPath: '/subscribe/subscription.txt',
+                github: {
+                    owner: 'IFRONnet',                    // 正确的用户名
+                    repo: 'freegetnode',                  // 修改为正确的仓库名
+                    workflow_id: 'fetch-subscription.yml'
+                },
+                updateApiKey: 'getfreenode_update_2024'   // 已设置的 API Key
             };
 
             const cache = new Map();
@@ -506,8 +512,8 @@
                 },
 
                 bindEvents() {
-                    document.getElementById('copySubscriptionBtn').onclick = this.copySubscription;
-                    document.getElementById('refreshDataBtn').onclick = () => this.refreshData();
+                    document.getElementById('copySubscriptionBtn').onclick = this.copySubscription.bind(this);
+                    document.getElementById('triggerUpdateBtn').onclick = this.triggerWorkflow.bind(this);
                 },
 
                 async refreshData() {
@@ -559,7 +565,37 @@
                         ui.showMessage('订阅链接已复制到剪贴板', 'success');
                     } catch (error) {
                         console.error('复制失败:', error);
-                        ui.showMessage('复制失败，请重试', 'error');
+                        ui.showMessage('复制失败，请重', 'error');
+                    }
+                },
+
+                async triggerWorkflow() {
+                    try {
+                        const response = await fetch(
+                            `https://api.github.com/repos/${CONFIG.github.owner}/${CONFIG.github.repo}/actions/workflows/${CONFIG.github.workflow_id}/dispatches`,
+                            {
+                                method: 'POST',
+                                headers: {
+                                    'Accept': 'application/vnd.github.v3+json',
+                                    'Authorization': `Bearer ${CONFIG.updateApiKey}`,
+                                },
+                                body: JSON.stringify({
+                                    ref: 'main',
+                                    inputs: {
+                                        api_key: CONFIG.updateApiKey
+                                    }
+                                })
+                            }
+                        );
+
+                        if (response.status === 204) {
+                            ui.showMessage('已触发更新，请等待几分钟后刷新订阅', 'success');
+                        } else {
+                            throw new Error('触发失败');
+                        }
+                    } catch (error) {
+                        console.error('触发更新失败:', error);
+                        ui.showMessage('触发更新失败，请稍后重试', 'error');
                     }
                 }
             };
