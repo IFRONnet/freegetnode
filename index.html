@@ -586,11 +586,13 @@
                             }
                         );
 
+                        console.log('Response status:', response.status);
+
                         if (response.status === 204) {
                             ui.showMessage('已触发更新，请等待几分钟后刷新订阅', 'success');
                         } else {
                             const errorText = await response.text();
-                            console.error('Error details:', errorText);
+                            console.error('Error response:', errorText);
                             throw new Error(`触发失败: ${response.status}`);
                         }
                     } catch (error) {
