@@ -14,8 +14,8 @@
         }
         iframe {
             width: 100%;      /* 让 iframe 宽度填充整个页面 */
-            height: 100vh;    /* 让 iframe 高度填充整个页面 */
             border: 0;        /* 去除 iframe 边框 */
+            display: block;   /* 确保 iframe 是块级元素 */
         }
     </style>
 </head>
@@ -29,23 +29,25 @@
     <script>
         const iframe = document.getElementById('iframe');
 
-        // 等待 iframe 加载完成
-        iframe.onload = function() {
+        // 动态调整 iframe 高度，确保没有滚动条
+        function resizeIframe() {
             try {
-                // 获取 iframe 中的文档标题
                 const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
-                const iframeTitle = iframeDoc.title;
-
-                // 如果 iframe 页面有标题，更新母页面的标题
-                if (iframeTitle) {
-                    document.title = iframeTitle;
-                }
+                const body = iframeDoc.body;
+                iframe.style.height = body.scrollHeight + 'px';  // 根据内容动态调整高度
             } catch (error) {
-                console.error('无法访问 iframe 内容：', error);
+                console.error('无法访问 iframe 内容，可能是跨域问题：', error);
             }
-        };
+        }
 
-        // 如果子页面的 title 动态变化，可以通过 postMessage 来同步（会用到跨域通讯）
+        // 等待 iframe 加载完成并调整高度
+        iframe.onload = resizeIframe;
+
+        // 监听窗口大小变化，重新调整 iframe 高度
+        window.onresize = resizeIframe;
+
+        // 如果 iframe 内容发生变化，可以定时检查并调整
+        setInterval(resizeIframe, 1000);  // 每隔 1 秒检查一次 iframe 高度
     </script>
 </body>
 </html>
