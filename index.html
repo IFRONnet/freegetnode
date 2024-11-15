@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Auto Fullscreen Iframe</title>
+    <title>公益免费订阅</title>
     <style>
         /* 确保页面占满整个屏幕 */
         body, html {
@@ -21,8 +21,29 @@
 </head>
 <body>
     <iframe
+        id="iframe"
         src="https://linjinpeng-getfreenode.hf.space"
         allowfullscreen>
     </iframe>
+
+    <script>
+        // 等待iframe加载完成
+        const iframe = document.getElementById('iframe');
+        
+        iframe.onload = function() {
+            try {
+                // 获取iframe中的文档标题
+                const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                const iframeTitle = iframeDoc.title;
+
+                // 如果iframe页面有标题，设置父页面的标题
+                if (iframeTitle) {
+                    document.title = iframeTitle;
+                }
+            } catch (error) {
+                console.error('无法访问iframe文档：', error);
+            }
+        };
+    </script>
 </body>
 </html>
