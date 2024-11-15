@@ -1,0 +1,97 @@
+name: Fetch Subscription
+
+on:
+  schedule:
+    - cron: '0 0 * * *'  # 每天 UTC 00:00 运行（相当于北京时间 08:00）
+  workflow_dispatch:      # 允许手动触发
+
+jobs:
+  fetch-and-update:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          
+      - name: Create fetch script
+        run: |
+          cat > fetch.js << 'EOF'
+          const https = require('https');
+          const fs = require('fs');
+          const path = require('path');
+
+          const CONFIG = {
+              uuid: '88888888-8888-8888-8888-888888888888',
+              domains: [
+                  'https://getfreenodes.com',
+                  'https://getafreenode.com'
+              ],
+              outputDir: 'public/subscribe',
+              outputFile: 'subscription.txt'
+          };
+
+          function fetch(url) {
+              return new Promise((resolve, reject) => {
+                  https.get(url, (res) => {
+                      let data = '';
+                      res.on('data', (chunk) => data += chunk);
+                      res.on('end', () => resolve(data));
+                  }).on('error', reject)
+                  .setTimeout(5000, () => {
+                      reject(new Error('Request timeout'));
+                  });
+              });
+          }
+
+          async function fetchSubscription() {
+              for (const domain of CONFIG.domains) {
+                  try {
+                      const url = `${domain}/subscribe/?uuid=${CONFIG.uuid}`;
+                      console.log(`Trying to fetch from: ${url}`);
+                      
+                      const base64Content = await fetch(url);
+                      
+                      // 确保输出目录存在
+                      if (!fs.existsSync(CONFIG.outputDir)) {
+                          fs.mkdirSync(CONFIG.outputDir, { recursive: true });
+                      }
+                      
+                      // 写入文件
+                      const outputPath = path.join(CONFIG.outputDir, CONFIG.outputFile);
+                      fs.writeFileSync(outputPath, base64Content);
+                      
+                      console.log('Successfully fetched and saved subscription');
+                      return;
+                  } catch (error) {
+                      console.error(`Failed to fetch from ${domain}:`, error.message);
+                  }
+              }
+              throw new Error('All domains failed');
+          }
+
+          fetchSubscription().catch(error => {
+              console.error('Failed to fetch subscription:', error);
+              process.exit(1);
+          });
+          EOF
+
+      - name: Create public directory
+        run: mkdir -p public/subscribe
+        
+      - name: Run fetch script
+        run: node fetch.js
+        
+      - name: Configure Git
+        run: |
+          git config --global user.name 'GitHub Actions Bot'
+          git config --global user.email 'actions@github.com'
+          
+      - name: Commit and push if changed
+        run: |
+          git add public/subscribe/subscription.txt
+          git diff --staged --quiet || (git commit -m "Update subscription $(date +'%Y-%m-%d %H:%M:%S')" && git push) 
