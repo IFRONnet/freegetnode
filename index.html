@@ -386,7 +386,8 @@
                 corsProxy: 'https://api.allorigins.win/get?url=',
                 retryAttempts: 10,
                 retryInterval: 10000,
-                timeout: 5000
+                timeout: 5000,
+                localSubscriptionPath: '/subscribe/subscription.txt'
             };
 
             const cache = new Map();
@@ -537,51 +538,25 @@
                 },
 
                 async fetchSubscription() {
-                    const urls = [
-                        `${CONFIG.mainDomain}/subscribe/?uuid=${CONFIG.uuid}`,
-                        `${CONFIG.backupDomain}/subscribe/?uuid=${CONFIG.uuid}`
-                    ];
-
-                    const data = await api.fetchWithRetry(urls, contents => {
-                        const decoded = atob(contents);
-                        finalBase64 = btoa(this.processSubscription(decoded));
+                    try {
+                        finalBase64 = 'https://getfreenode.pages.dev/public/subscribe/subscription.txt';
                         return finalBase64;
-                    });
-
-                    return data;
-                },
-
-                processSubscription(decoded) {
-                    return decoded.split('\n')
-                        .map(line => {
-                            if (line.startsWith('vmess://')) {
-                                try {
-                                    const vmessData = atob(line.slice(8));
-                                    return 'vmess://' + btoa(this.replaceKeywords(vmessData));
-                                } catch {
-                                    return line;
-                                }
-                            }
-                            return this.replaceKeywords(line);
-                        })
-                        .join('\n');
-                },
-
-                replaceKeywords(text) {
-                    return text
-                        .replace(/-GetAFreeNode\.com/g, '-getfreenode.pages.dev/')
-                        .replace(/-GetAFreeNode/g, '-getfreenode.pages.dev/');
+                    } catch (error) {
+                        console.error('Failed to set subscription URL:', error);
+                        ui.showMessage('设置订阅链接失败', 'error');
+                        throw error;
+                    }
                 },
 
                 async copySubscription() {
                     if (!finalBase64) {
-                        ui.showMessage('订阅内容未加载，请稍后重试', 'error');
+                        ui.showMessage('订阅链接未加载，请稍后重试', 'error');
                         return;
                     }
 
                     try {
                         await navigator.clipboard.writeText(finalBase64);
-                        ui.showMessage('订阅内容已复制到剪贴板', 'success');
+                        ui.showMessage('订阅链接已复制到剪贴板', 'success');
                     } catch (error) {
                         console.error('复制失败:', error);
                         ui.showMessage('复制失败，请重试', 'error');
