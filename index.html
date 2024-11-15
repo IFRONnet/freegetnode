@@ -27,23 +27,25 @@
     </iframe>
 
     <script>
-        // 等待iframe加载完成
         const iframe = document.getElementById('iframe');
-        
+
+        // 等待 iframe 加载完成
         iframe.onload = function() {
             try {
-                // 获取iframe中的文档标题
+                // 获取 iframe 中的文档标题
                 const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
                 const iframeTitle = iframeDoc.title;
 
-                // 如果iframe页面有标题，设置父页面的标题
+                // 如果 iframe 页面有标题，更新母页面的标题
                 if (iframeTitle) {
                     document.title = iframeTitle;
                 }
             } catch (error) {
-                console.error('无法访问iframe文档：', error);
+                console.error('无法访问 iframe 内容：', error);
             }
         };
+
+        // 如果子页面的 title 动态变化，可以通过 postMessage 来同步（会用到跨域通讯）
     </script>
 </body>
 </html>
