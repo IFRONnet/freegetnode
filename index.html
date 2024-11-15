@@ -1,6 +1,28 @@
-<iframe
-	src="https://linjinpeng-getfreenode.hf.space"
-	frameborder="0"
-	width="850"
-	height="450"
-></iframe>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auto Fullscreen Iframe</title>
+    <style>
+        /* 确保页面占满整个屏幕 */
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            overflow: hidden;  /* 防止出现滚动条 */
+        }
+        iframe {
+            width: 100%;      /* 让 iframe 宽度填充整个页面 */
+            height: 100vh;    /* 让 iframe 高度填充整个页面 */
+            border: 0;        /* 去除 iframe 边框 */
+        }
+    </style>
+</head>
+<body>
+    <iframe
+        src="https://linjinpeng-getfreenode.hf.space"
+        allowfullscreen>
+    </iframe>
+</body>
+</html>
