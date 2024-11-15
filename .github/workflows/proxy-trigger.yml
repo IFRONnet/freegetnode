@@ -1,0 +1,24 @@
+name: Proxy Trigger
+
+on:
+  repository_dispatch:
+    types: [trigger-fetch]
+
+jobs:
+  trigger-fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger fetch-subscription workflow
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            await github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.name,
+              workflow_id: 'fetch-subscription.yml',
+              ref: 'main'
+            }) 
+    permissions:
+      contents: write
+      actions: write
