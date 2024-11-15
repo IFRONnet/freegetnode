@@ -4,11 +4,6 @@ on:
   schedule:
     - cron: '0 0 * * *'
   workflow_dispatch:
-    inputs:
-      api_key:
-        description: 'API Key for verification'
-        required: true
-        type: string
 
 permissions:
   contents: write
@@ -19,20 +14,11 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-      - name: Verify API Key
-        if: github.event_name == 'workflow_dispatch'
-        env:
-          ALLOWED_KEY: ${{ secrets.UPDATE_API_KEY }}
-        run: |
-          if [ "${{ github.event.inputs.api_key }}" != "$ALLOWED_KEY" ]; then
-            echo "Invalid API key"
-            exit 1
-          fi
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}  # 使用 GitHub Token
-          
+          token: ${{ secrets.FINE_GRAINED_PAT }}
+      
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
