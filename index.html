@@ -1,57 +1,11 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>公益免费订阅</title>
-    <style>
-        /* 确保页面占满整个屏幕 */
-        body, html {
-            margin: 0;
-            padding: 0;
-            height: 100%; /* 修复这里，使用具体的百分比值 */
-            overflow: hidden; /* 防止出现滚动条 */
-        }
-        iframe {
-            width: 100%; /* 修复这里，使用 100% 填充整个页面 */
-            height: 100%; /* 确保高度也占满整个页面 */
-            border: 0; /* 去除 iframe 边框 */
-            display: block; /* 确保 iframe 是块级元素 */
-        }
-    </style>
+    <meta http-equiv="refresh" content="0; url=https://linjinpeng-getfreenode.hf.space/">
+    <title>页面跳转</title>
 </head>
 <body>
-    <iframe
-        id="iframe"
-        src="https://linjinpeng-getfreenode.hf.space"
-        allowfullscreen>
-    </iframe>
-
-    <script>
-        const iframe = document.getElementById('iframe');
-
-        // 动态调整 iframe 高度，确保没有滚动条
-        function resizeIframe() {
-            try {
-                // 检查是否可以访问 iframe 的内容
-                if (iframe.contentWindow) {
-                    const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
-                    const body = iframeDoc.body;
-                    iframe.style.height = body.scrollHeight + 'px'; // 根据内容动态调整高度
-                }
-            } catch (error) {
-                console.error('无法访问 iframe 内容，可能是跨域问题：', error);
-            }
-        }
-
-        // 等待 iframe 加载完成并调整高度
-        iframe.onload = resizeIframe;
-
-        // 监听窗口大小变化，重新调整 iframe 高度
-        window.onresize = resizeIframe;
-
-        // 如果 iframe 内容发生变化，可以定时检查并调整
-        setInterval(resizeIframe, 1000); // 每隔 1 秒检查一次 iframe 高度
-    </script>
+    <p>如果您没有自动跳转，请点击 <a href="https://linjinpeng-getfreenode.hf.space/">这里</a>.</p>
 </body>
 </html>
