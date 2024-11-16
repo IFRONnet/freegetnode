@@ -1,19 +1,16 @@
 name: Visit FreeNode Page Every Hour
-
 on:
   schedule:
     - cron: '0 * * * *'  # 每小时触发一次
   # 如果你想手动触发任务，也可以使用以下触发器：
   # workflow_dispatch: 
-
 jobs:
   visit-page:
     runs-on: ubuntu-latest  # 使用最新的 Ubuntu 环境
-
     steps:
     - name: Checkout repository
       uses: actions/checkout@v3  # 这是一个标准步骤，通常在访问远程资源前需要获取代码仓库的内容
-
-    - name: Make an HTTP request to the page
+    - name: Make an HTTP request to the page and measure response time
       run: |
-        curl -s -L https://getfreenode.pages.dev/  # 使用 curl 请求页面，-s 是静默模式，-L 用于自动跟随重定向
+        response_time=$(curl -o /dev/null -s -w '%{time_total}\n' https://linjinpeng-getfreenode.hf.space/)  # 使用 curl 请求页面并测量响应时间
+        echo "Response time: $response_time seconds"
