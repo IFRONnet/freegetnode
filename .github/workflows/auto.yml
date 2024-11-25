@@ -12,11 +12,11 @@ jobs:
     strategy:
       matrix:
         site:
-          - name: deepseek api逆向
+          - name: deepseek_api逆向
             url: https://linjinpeng-deepseek-free-api.hf.space
-          - name: 番茄小说下载站
+          - name: fanqie_xiufuban
             url: https://linjinpeng-fanqiexiufuban.hf.space
-          - name: 免费订阅节点
+          - name: getfreenode
             url: https://linjinpeng-getfreenode.hf.space
     steps:
       - name: Checkout repository
@@ -26,10 +26,10 @@ jobs:
         run: |
           url="${{ matrix.site.url }}"
           response_time=$(curl -o /dev/null -s -w '%{time_total}\n' "$url")
-          echo "${{ matrix.site.name }} Response time: $response_time seconds" >> time_${{ matrix.site.name }}.txt
+          echo "${{ matrix.site.name }} Response time: $response_time seconds" > "time_${{ matrix.site.name }}.txt"
 
       - name: Upload time_${{ matrix.site.name }}.txt as artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: response-time-${{ matrix.site.name }}
-          path: time_${{ matrix.site.name }}.txt
+          path: "time_${{ matrix.site.name }}.txt"
