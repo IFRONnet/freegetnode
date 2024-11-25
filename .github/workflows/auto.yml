@@ -1,16 +1,35 @@
-name: Visit FreeNode Page Every Hour
+name: Visit Multiple Sites Every Hour
+
 on:
   schedule:
     - cron: '0 * * * *'  # 每小时触发一次
-  # 如果你想手动触发任务，也可以使用以下触发器：
-  # workflow_dispatch: 
+  # 如果需要手动触发，可以取消下面的注释
+  # workflow_dispatch:
+
 jobs:
-  visit-page:
-    runs-on: ubuntu-latest  # 使用最新的 Ubuntu 环境
+  visit-sites:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        site:
+          - name: deepseek api逆向
+            url: https://linjinpeng-deepseek-free-api.hf.space
+          - name: 番茄小说下载站
+            url: https://linjinpeng-fanqiexiufuban.hf.space
+          - name: 免费订阅节点
+            url: https://linjinpeng-getfreenode.hf.space
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v3  # 这是一个标准步骤，通常在访问远程资源前需要获取代码仓库的内容
-    - name: Make an HTTP request to the page and measure response time
-      run: |
-        response_time=$(curl -o /dev/null -s -w '%{time_total}\n' https://linjinpeng-getfreenode.hf.space/)  # 使用 curl 请求页面并测量响应时间
-        echo "Response time: $response_time seconds"
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Make HTTP request to ${{ matrix.site.name }} and measure response time
+        run: |
+          url="${{ matrix.site.url }}"
+          response_time=$(curl -o /dev/null -s -w '%{time_total}\n' "$url")
+          echo "${{ matrix.site.name }} Response time: $response_time seconds" >> time_${{ matrix.site.name }}.txt
+
+      - name: Upload time_${{ matrix.site.name }}.txt as artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: response-time-${{ matrix.site.name }}
+          path: time_${{ matrix.site.name }}.txt
