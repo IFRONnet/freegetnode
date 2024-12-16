@@ -12,8 +12,8 @@ jobs:
     strategy:
       matrix:
         site:
-          - name: deepseek_api逆向
-            url: https://linjinpeng-deepseek-free-api.hf.space
+          - name: 番茄小说预览版
+            url: https://linjinpeng-fqnew.hf.space
           - name: fanqie_xiufuban
             url: https://linjinpeng-fanqiexiufuban.hf.space
           - name: getfreenode
