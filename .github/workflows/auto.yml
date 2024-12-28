@@ -18,6 +18,8 @@ jobs:
             url: https://linjinpeng-fanqiexiufuban.hf.space
           - name: getfreenode
             url: https://linjinpeng-getfreenode.hf.space
+          - name: chatnext
+            url: https://linjinpeng-chatgpt-next-web-siliconflowapi-1.hf.space
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
