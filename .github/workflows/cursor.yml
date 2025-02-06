@@ -174,8 +174,8 @@ jobs:
                   logger.error("未设置 ACCESS_CODE 环境变量，程序退出。")
                   return
 
-              <span style="background-color: #FFFF00;">num_attempts = 20</span>  # 修改为 20 次尝试
-              <span style="background-color: #FFFF00;">delay_between_attempts = 2.0</span> # 确保延迟为 2 秒
+              num_attempts = 20  # 修改为 20 次尝试
+              delay_between_attempts = 2.0 # 确保延迟为 2 秒
 
               output_dir = FilePathManager.get_output_dir()
               output_file = output_dir / "token_metadata.txt"  # 存储元数据的文件
