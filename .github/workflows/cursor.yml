@@ -45,9 +45,6 @@ jobs:
           from pathlib import Path
           from typing import Dict, Optional, Tuple
 
-          # --- (将 token.py 的全部代码复制到这里) ---
-          # --- (注意：需要进行一些调整) ---
-
           # 配置日志记录
           logging.basicConfig(
               level=logging.INFO,
@@ -104,7 +101,7 @@ jobs:
                       if data.get("code") == 0:
                           logger.info("成功获取 Token 数据")
                       else:
-                          logger.warning(f"获取 Token 失败: {data.get("message", "未知错误")}")
+                          logger.warning(f"获取 Token 失败: {data.get('message', '未知错误')}") # 修正: 使用单引号
                       return data  # 直接返回
 
                   except requests.RequestException as e:
